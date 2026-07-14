@@ -1,0 +1,30 @@
+name: Firmware CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv8m.main-none-eabihf
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build firmware
+        run: |
+          cargo build \
+            -p rp-pico-2w \
+            --release \
+            --target thumbv8m.main-none-eabihf
