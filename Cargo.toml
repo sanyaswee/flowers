@@ -1,0 +1,16 @@
+[workspace]
+members = [
+    "backend",
+    "cli",
+    "firmware/core",
+    "firmware/rp_pico_2w",
+    "shared"
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/sanyaswee/flowers"
+description = "DIY smart scalable plant monitoring & watering system"
+authors = ["https://github.com/sanyaswee"]
