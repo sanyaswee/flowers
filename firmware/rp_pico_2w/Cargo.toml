@@ -2,3 +2,9 @@
 name = "rp-pico-2w"
 version = "0.1.0"
 edition.workspace = true
+
+[[bin]]
+name = "rp-pico-2w"
+path = "src/main.rs"
+test = false
+bench = false
