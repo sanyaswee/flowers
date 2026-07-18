@@ -3,9 +3,10 @@
 
 use embedded_hal_async::i2c::I2c;
 use embassy_time::Timer;
-use defmt::{error, info};
+use defmt::{error};
 
 use crate::i2c_mutex::SharedI2C;
+use crate::telemetry_broker::TELEMETRY;
 
 /// I2C address for BH1750FVI
 const ADDR: u8 = 0x23;
@@ -59,7 +60,10 @@ where
         match reading {
             Ok(_) => {
                 let lux = raw_to_lux(buf);
-                info!("Light intensity: {} lx", lux)
+                {
+                    let mut t = TELEMETRY.lock().await;
+                    t.light_intensity = Some(lux);
+                }
             }
             Err(_) => {
                 error!("Error reading light intensity")

@@ -5,16 +5,16 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use embassy_executor::Spawner;
-use embassy_rp::i2c::{Config, I2c, InterruptHandler, Async};
-use embassy_rp::peripherals;
 use embassy_rp::bind_interrupts;
+use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler};
+use embassy_rp::peripherals;
 use embassy_sync::mutex::Mutex;
 use static_cell::StaticCell;
 
-use defmt::{info};
+use defmt::info;
 
 use core_logic::i2c_mutex::SharedI2C;
-use core_logic::{bh1750, bmp280};
+use core_logic::{bh1750, bmp280, telemetry_broker};
 
 bind_interrupts!(struct Irqs {
     I2C0_IRQ => InterruptHandler<peripherals::I2C0>;
@@ -48,4 +48,5 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(read_light_intensity(shared_i2c).unwrap());
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
+    spawner.spawn(telemetry_broker::publish().unwrap());
 }

@@ -1,3 +1,5 @@
+//! This module contains NodeConfig and related structs / enums
+
 /// Each node should have a configuration defined.
 /// Design assumes that each node supports soil moisture reading and pump control on every flower channel
 pub struct NodeConfig {

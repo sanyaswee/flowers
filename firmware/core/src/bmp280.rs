@@ -5,6 +5,7 @@ use embedded_hal_async::i2c::I2c;
 use embassy_time::Timer;
 use defmt::{error, info};
 use crate::i2c_mutex::SharedI2C;
+use crate::telemetry_broker::TELEMETRY;
 
 /// I2C address for BMP280
 const ADDR: u8 = 0x76;
@@ -150,7 +151,11 @@ where
 
                 // Apply math
                 let (temp_c, pressure_hpa) = compensate(raw_t, raw_p, &calibration);
-                info!("Temp: {} C, Pressure: {} hPa", temp_c, pressure_hpa);
+                {
+                    let mut t = TELEMETRY.lock().await;
+                    t.temperature = Some(temp_c);
+                    t.pressure = Some(pressure_hpa);
+                }
             }
             Err(_) => {
                 error!("Error reading from BMP280");

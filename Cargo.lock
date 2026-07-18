@@ -161,9 +161,11 @@ name = "core-logic"
 version = "0.1.0"
 dependencies = [
  "defmt",
+ "embassy-executor",
  "embassy-sync",
  "embassy-time",
  "embedded-hal-async",
+ "shared",
 ]
 
 [[package]]
@@ -1169,7 +1171,6 @@ dependencies = [
  "embassy-executor",
  "embassy-rp",
  "embassy-sync",
- "embedded-hal-async",
  "panic-probe",
  "static_cell",
 ]
@@ -1262,6 +1263,9 @@ dependencies = [
 [[package]]
 name = "shared"
 version = "0.1.0"
+dependencies = [
+ "defmt",
+]
 
 [[package]]
 name = "shlex"
