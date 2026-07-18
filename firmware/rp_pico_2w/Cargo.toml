@@ -16,7 +16,6 @@ core-logic = { path = "../core" }
 # Embassy
 embassy-executor = { version = "0.10", features = ["defmt", "platform-cortex-m", "executor-thread"] }
 embassy-rp = { version = "0.10.0", features = ["rp235xa", "defmt", "critical-section-impl", "time-driver"] }
-embassy-time = { version = "0.5.1", features = ["defmt"] }
 
 static_cell = "2.1.1"
 
