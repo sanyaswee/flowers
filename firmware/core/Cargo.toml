@@ -2,3 +2,9 @@
 name = "core-logic"
 version = "0.1.0"
 edition.workspace = true
+
+[dependencies]
+embassy-sync = "0.8.0"
+embedded-hal-async = "1.0.0"
+defmt = "1.1.1"
+embassy-time = "0.5.1"

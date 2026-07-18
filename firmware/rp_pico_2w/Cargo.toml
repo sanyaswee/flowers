@@ -10,10 +10,15 @@ test = false
 bench = false
 
 [dependencies]
+# Core
+core-logic = { path = "../core" }
+
 # Embassy
 embassy-executor = { version = "0.10", features = ["defmt", "platform-cortex-m", "executor-thread"] }
 embassy-rp = { version = "0.10.0", features = ["rp235xa", "defmt", "critical-section-impl", "time-driver"] }
 embassy-time = { version = "0.5.1", features = ["defmt"] }
+
+static_cell = "2.1.1"
 
 # Logs & panic
 defmt = "1.1.1"
@@ -24,3 +29,4 @@ panic-probe = "1.0.0"
 cortex-m = { version = "0.7.7", features = ["inline-asm"] }
 cortex-m-rt = "0.7.5"
 embedded-hal-async = "1.0.0"
+embassy-sync = "0.8.0"

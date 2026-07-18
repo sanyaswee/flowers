@@ -159,6 +159,12 @@ dependencies = [
 [[package]]
 name = "core-logic"
 version = "0.1.0"
+dependencies = [
+ "defmt",
+ "embassy-sync",
+ "embassy-time",
+ "embedded-hal-async",
+]
 
 [[package]]
 name = "cortex-m"
@@ -1026,6 +1032,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "portable-atomic"
+version = "1.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d20d5497ef88037a52ff98267d066e7f11fcc5e99bbfbd58a42336193aacec3"
+
+[[package]]
 name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1150,15 +1162,18 @@ dependencies = [
 name = "rp-pico-2w"
 version = "0.1.0"
 dependencies = [
+ "core-logic",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
  "defmt-rtt",
  "embassy-executor",
  "embassy-rp",
+ "embassy-sync",
  "embassy-time",
  "embedded-hal-async",
  "panic-probe",
+ "static_cell",
 ]
 
 [[package]]
@@ -1291,6 +1306,15 @@ name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
+
+[[package]]
+name = "static_cell"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0530892bb4fa575ee0da4b86f86c667132a94b74bb72160f58ee5a4afec74c23"
+dependencies = [
+ "portable-atomic",
+]
 
 [[package]]
 name = "string_cache"
