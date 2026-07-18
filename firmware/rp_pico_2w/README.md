@@ -12,4 +12,4 @@ The main limitation of this node is that there are only 3 ADC peripherals onboar
 | Light Intensity | BH1750FVI                        | Digital   |
 
 ## Schematics
-Coming soon...
+![Schematic](schematic.svg)
