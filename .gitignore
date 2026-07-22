@@ -1,1 +1,4 @@
 /target
+
+# WiFi credentials
+firmware/secrets/*
