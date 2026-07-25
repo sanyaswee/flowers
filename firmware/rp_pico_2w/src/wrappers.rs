@@ -1,0 +1,18 @@
+//! Wrapped tasks from core crate
+
+use core_logic::i2c_mutex::SharedI2C;
+use core_logic::{bh1750, bmp280};
+
+use crate::PicoI2c;
+
+/// Task wrapper for BH1750
+#[embassy_executor::task]
+pub async fn read_light_intensity(bus: &'static SharedI2C<PicoI2c>) {
+    bh1750::read_light_intensity(bus).await;
+}
+
+/// Task wrapper for BMP280
+#[embassy_executor::task]
+pub async fn read_temp_pressure(bus: &'static SharedI2C<PicoI2c>) {
+    bmp280::read_temp_pressure(bus).await;
+}
