@@ -14,9 +14,12 @@ use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler};
 use embassy_rp::peripherals;
+use embassy_rp::otp;
 use embassy_sync::mutex::Mutex;
 
 use static_cell::StaticCell;
+
+use core_logic::NODE_CONFIG;
 use core_logic::i2c_mutex::SharedI2C;
 use core_logic::telemetry_broker;
 
@@ -31,16 +34,18 @@ bind_interrupts!(struct Irqs {
 type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
 static I2C_BUS: StaticCell<SharedI2C<PicoI2c>> = StaticCell::new();
 
-/// Node configuration declaration
-pub const NODE_CONFIG: NodeConfig = NodeConfig::new(
-    2,
-    WaterTankDetection::None,
-    TelemetryCapabilities::new(true, false, true, true)
-);
-
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+
+    let config = NodeConfig::new(
+        otp::get_chipid().unwrap(),
+        2,
+        WaterTankDetection::None,
+        TelemetryCapabilities::new(true, false, true, true)
+    );
+
+    NODE_CONFIG.init(config).unwrap();
 
     let stack = wifi::init(
         spawner, p.PIO0, p.PIN_23, p.PIN_24, p.PIN_25, p.PIN_29, p.DMA_CH0,
@@ -64,5 +69,5 @@ async fn main(spawner: Spawner) {
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
     spawner.spawn(telemetry_broker::publish().unwrap());
 
-    info!("Node initialized! Configuration: {}", NODE_CONFIG);
+    info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
 }
