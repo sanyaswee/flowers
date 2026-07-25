@@ -2,23 +2,28 @@
 
 use embassy_sync::mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
-use defmt::info;
 use embassy_time::Timer;
+
 use shared::telemetry::NodeTelemetry;
+
+use defmt::info;
+
+use crate::wifi_broker::TELEMETRY_CHANNEL;
 
 /// Shared telemetry mutex
 pub static TELEMETRY: Mutex<ThreadModeRawMutex, NodeTelemetry> = Mutex::new(NodeTelemetry::new());
 
 /// Main broker task
 #[embassy_executor::task]
-pub async fn publish() {
+pub async fn gather() {
     loop {
         // Needed to drop the lock
         let t = {
             let t = TELEMETRY.lock().await;
             t.clone()
         };
-        info!("{}", t);
+        info!("Telemetry gathered: {}", t);
+        TELEMETRY_CHANNEL.send(t).await;
         Timer::after_secs(5).await;
     }
 }

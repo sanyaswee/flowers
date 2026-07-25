@@ -21,7 +21,7 @@ use static_cell::StaticCell;
 
 use core_logic::NODE_CONFIG;
 use core_logic::SharedI2C;
-use core_logic::telemetry_broker;
+use core_logic::{telemetry_broker, wifi_broker};
 
 use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection};
 
@@ -67,7 +67,9 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(read_light_intensity(shared_i2c).unwrap());
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
-    spawner.spawn(telemetry_broker::publish().unwrap());
+    
+    spawner.spawn(telemetry_broker::gather().unwrap());
+    spawner.spawn(wifi_broker::telemetry_sender().unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
 }
