@@ -13,6 +13,8 @@ bench = false
 # Core
 core-logic = { path = "../core" }
 
+shared = { path = "../../shared" }
+
 # Embassy
 embassy-executor = { version = "0.10", features = ["defmt", "platform-cortex-m", "executor-thread"] }
 embassy-rp = { version = "0.10.0", features = ["rp235xa", "defmt", "critical-section-impl", "time-driver"] }

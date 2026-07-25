@@ -20,6 +20,8 @@ use static_cell::StaticCell;
 use core_logic::i2c_mutex::SharedI2C;
 use core_logic::telemetry_broker;
 
+use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection};
+
 use wrappers::*;
 
 bind_interrupts!(struct Irqs {
@@ -28,6 +30,13 @@ bind_interrupts!(struct Irqs {
 
 type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
 static I2C_BUS: StaticCell<SharedI2C<PicoI2c>> = StaticCell::new();
+
+/// Node configuration declaration
+pub const NODE_CONFIG: NodeConfig = NodeConfig::new(
+    2,
+    WaterTankDetection::None,
+    TelemetryCapabilities::new(true, false, true, true)
+);
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -55,5 +64,5 @@ async fn main(spawner: Spawner) {
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
     spawner.spawn(telemetry_broker::publish().unwrap());
 
-    info!("Node initialized!");
+    info!("Node initialized! Configuration: {}", NODE_CONFIG);
 }

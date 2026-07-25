@@ -1396,6 +1396,7 @@ dependencies = [
  "embassy-sync",
  "embassy-time",
  "panic-probe",
+ "shared",
  "static_cell",
 ]
 

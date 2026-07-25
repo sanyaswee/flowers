@@ -1,9 +1,7 @@
 //! This module contains telemetry related structs
 
-use defmt::Format;
-
 /// Node specific telemetry
-#[derive(Format, Clone)]
+#[derive(defmt::Format, Clone)]
 pub struct NodeTelemetry {
     /// Water tank telemetry
     pub water_tank_has_water: Option<bool>,
