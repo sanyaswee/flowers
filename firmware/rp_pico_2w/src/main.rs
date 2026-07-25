@@ -1,51 +1,33 @@
 #![no_std]
 #![no_main]
 
-mod wifi;
-
+use defmt::info;
 use defmt_rtt as _;
 use panic_probe as _;
 
-use defmt::info;
+use cyw43::aligned_bytes;
+use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 use embassy_executor::Spawner;
+use embassy_net::{Config as NetConfig, StackResources};
 use embassy_rp::bind_interrupts;
+use embassy_rp::dma;
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler as I2cInterruptHandler};
-use embassy_rp::peripherals;
+use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::{InterruptHandler as PioInterruptHandler, Pio};
-use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Timer};
-use static_cell::make_static; // The macro that removes the bloat
-
-use cyw43_pio::PioSpi;
-use embassy_net::{Config as NetConfig, Stack, StackResources};
-
-use core_logic::i2c_mutex::SharedI2C;
-use core_logic::{bh1750, bmp280, telemetry_broker};
-use crate::wifi::WifiCredentials;
+use static_cell::StaticCell;
 
 bind_interrupts!(struct Irqs {
-    I2C0_IRQ => I2cInterruptHandler<peripherals::I2C0>;
-    PIO0_IRQ_0 => PioInterruptHandler<peripherals::PIO0>;
+    PIO0_IRQ_0 => PioInterruptHandler<PIO0>;
+    DMA_IRQ_0 => dma::InterruptHandler<DMA_CH0>;
 });
 
-type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
-
-const WIFI: WifiCredentials = WifiCredentials {
-    ssid: include_str!("../../secrets/ssid.txt"),
-    password: include_str!("../../secrets/password.txt"),
-};
-
-// Use cyw43's built-in aligner so we don't need manual struct wrappers or unsafe code
-static FW: cyw43::Aligned<u32, [u8; 231077]> = cyw43::Aligned(*include_bytes!("../../cyw43-firmware/43439A0.bin"));
-static CLM: cyw43::Aligned<u32, [u8; 984]> = cyw43::Aligned(*include_bytes!("../../cyw43-firmware/43439A0_clm.bin"));
+const WIFI_SSID: &str = include_str!("../../secrets/ssid.txt");
+const WIFI_PASSWORD: &str = include_str!("../../secrets/password.txt");
 
 #[embassy_executor::task]
-async fn wifi_task(
-    runner: cyw43::Runner<
-        'static,
-        cyw43::SpiBus<Output<'static>, PioSpi<'static, peripherals::PIO0, 0>>,
-    >,
+async fn cyw43_task(
+    runner: cyw43::Runner<'static, cyw43::SpiBus<Output<'static>, PioSpi<'static, PIO0, 0>>>,
 ) -> ! {
     runner.run().await
 }
@@ -55,23 +37,17 @@ async fn net_task(mut runner: embassy_net::Runner<'static, cyw43::NetDriver<'sta
     runner.run().await
 }
 
-#[embassy_executor::task]
-async fn read_light_intensity(bus: &'static SharedI2C<PicoI2c>) {
-    bh1750::read_light_intensity(bus).await;
-}
-
-#[embassy_executor::task]
-async fn read_temp_pressure(bus: &'static SharedI2C<PicoI2c>) {
-    bmp280::read_temp_pressure(bus).await;
-}
-
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    // --- I2C Setup ---
-    let i2c = I2c::new_async(p.I2C0, p.PIN_17, p.PIN_16, Irqs, Config::default());
-    let shared_i2c = make_static!(SharedI2C<PicoI2c>, Mutex::new(i2c));
+    // Firmware blobs, 4-byte aligned via cyw43's own macro (don't build `Aligned` by hand).
+    // Grab nvram_rp2040.bin from:
+    // https://github.com/embassy-rs/embassy/raw/main/cyw43-firmware/nvram_rp2040.bin
+    // and place it alongside 43439A0.bin / 43439A0_clm.bin.
+    let fw = aligned_bytes!("../cyw43-firmware/43439A0.bin");
+    let clm = aligned_bytes!("../cyw43-firmware/43439A0_clm.bin");
+    let nvram = aligned_bytes!("../cyw43-firmware/nvram_rp2040.bin");
 
     // --- Wi-Fi Hardware Setup ---
     let pwr = Output::new(p.PIN_23, Level::Low);
@@ -81,39 +57,42 @@ async fn main(spawner: Spawner) {
     let spi = PioSpi::new(
         &mut pio.common,
         pio.sm0,
-        Default::default(),
+        DEFAULT_CLOCK_DIVIDER,
         pio.irq0,
         cs,
         p.PIN_24,
         p.PIN_29,
-        p.DMA_CH0.into(),
+        dma::Channel::new(p.DMA_CH0, Irqs),
     );
 
-    let state = make_static!(cyw43::State, cyw43::State::new());
+    static STATE: StaticCell<cyw43::State> = StaticCell::new();
+    let state = STATE.init(cyw43::State::new());
 
-    // Pass references to the aligned arrays directly
-    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, &FW.0).await;
-    spawner.spawn(wifi_task(runner).unwrap());
+    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
+    spawner.spawn(cyw43_task(runner).unwrap());
 
-    control.init(&CLM.0).await;
-    control.set_power_management(cyw43::PowerManagementMode::PowerSave).await;
+    control.init(clm).await;
+    control
+        .set_power_management(cyw43::PowerManagementMode::PowerSave)
+        .await;
 
     // --- Network Stack Setup ---
-    let res = make_static!(StackResources<3>, StackResources::new());
+    static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
     let (stack, net_runner) = embassy_net::new(
         net_device,
         NetConfig::dhcpv4(Default::default()),
-        res,
-        0x0123_4567_89ab_cdef, // Hardcoded seed, replace with TRNG in production
+        RESOURCES.init(StackResources::new()),
+        0x0123_4567_89ab_cdef, // TODO: replace with a TRNG-derived seed in production
     );
     spawner.spawn(net_task(net_runner).unwrap());
 
-    let stack = make_static!(Stack<'static>, stack);
-
     // --- Connect to Wi-Fi ---
-    info!("Connecting to Wi-Fi network: {}...", WIFI.ssid);
+    info!("Connecting to Wi-Fi network: {}...", WIFI_SSID);
     loop {
-        match control.join(WIFI.ssid, cyw43::JoinOptions::new(WIFI.password.as_bytes())).await {
+        match control
+            .join(WIFI_SSID, cyw43::JoinOptions::new(WIFI_PASSWORD.as_bytes()))
+            .await
+        {
             Ok(_) => break,
             Err(err) => {
                 info!("Join failed with error: {}. Retrying...", err);
@@ -125,14 +104,9 @@ async fn main(spawner: Spawner) {
 
     stack.wait_config_up().await;
     if let Some(config) = stack.config_v4() {
-        let ip = config.address.address().0;
+        let ip = config.address.address().octets();
         info!("Network configured! IP address: {}.{}.{}.{}", ip[0], ip[1], ip[2], ip[3]);
     }
-
-    // --- Spawn Application Tasks ---
-    spawner.spawn(read_light_intensity(shared_i2c).unwrap());
-    spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
-    spawner.spawn(telemetry_broker::publish().unwrap());
 
     info!("Node initialized and network connected");
 }
