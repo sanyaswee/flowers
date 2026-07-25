@@ -1,6 +1,6 @@
 //! Wrapped tasks from core crate
 
-use core_logic::i2c_mutex::SharedI2C;
+use core_logic::SharedI2C;
 use core_logic::{bh1750, bmp280};
 
 use crate::PicoI2c;

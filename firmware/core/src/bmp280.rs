@@ -4,7 +4,7 @@
 use embedded_hal_async::i2c::I2c;
 use embassy_time::Timer;
 use defmt::{error, info};
-use crate::i2c_mutex::SharedI2C;
+use crate::SharedI2C;
 use crate::telemetry_broker::TELEMETRY;
 
 /// I2C address for BMP280

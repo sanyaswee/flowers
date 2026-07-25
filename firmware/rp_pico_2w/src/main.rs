@@ -20,7 +20,7 @@ use embassy_sync::mutex::Mutex;
 use static_cell::StaticCell;
 
 use core_logic::NODE_CONFIG;
-use core_logic::i2c_mutex::SharedI2C;
+use core_logic::SharedI2C;
 use core_logic::telemetry_broker;
 
 use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection};
