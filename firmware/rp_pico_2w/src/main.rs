@@ -21,11 +21,12 @@ use static_cell::StaticCell;
 
 use core_logic::NODE_CONFIG;
 use core_logic::SharedI2C;
-use core_logic::{telemetry_broker, wifi_broker};
+use core_logic::telemetry_broker;
 
 use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection};
 
 use wrappers::*;
+use wifi::WifiTransport;
 
 bind_interrupts!(struct Irqs {
     I2C0_IRQ => InterruptHandler<peripherals::I2C0>;
@@ -33,6 +34,8 @@ bind_interrupts!(struct Irqs {
 
 type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
 static I2C_BUS: StaticCell<SharedI2C<PicoI2c>> = StaticCell::new();
+
+static WIFI_TRANSPORT: StaticCell<WifiTransport> = StaticCell::new();
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -50,6 +53,7 @@ async fn main(spawner: Spawner) {
     let wifi_tr = wifi::init(
         spawner, p.PIO0, p.PIN_23, p.PIN_24, p.PIN_25, p.PIN_29, p.DMA_CH0,
     ).await;
+    let wifi_tr = WIFI_TRANSPORT.init(wifi_tr);
 
     if let Some(config) = wifi_tr.stack.config_v4() {
         let ip = config.address.address().octets();
@@ -69,7 +73,7 @@ async fn main(spawner: Spawner) {
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
     
     spawner.spawn(telemetry_broker::gather().unwrap());
-    spawner.spawn(wifi_broker::telemetry_sender().unwrap());
+    spawner.spawn(telemetry_sender(wifi_tr).unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
 }

@@ -40,9 +40,10 @@ pub struct WifiTransport {
 }
 
 impl PacketSender for WifiTransport {
-    type Error = Err;
+    type Error = embassy_net::tcp::Error;
 
-    async fn send(&mut self, bytes: &[u8]) -> Result<(), Error> {
+    async fn send(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
+        // TODO
         // Create TCP socket
 
         // Connect
