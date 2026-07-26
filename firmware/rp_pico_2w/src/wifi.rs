@@ -4,17 +4,25 @@
 
 use cyw43::aligned_bytes;
 use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
+
 use defmt::info;
+
 use embassy_executor::Spawner;
 use embassy_net::{Config as NetConfig, Stack, StackResources};
+
 use embassy_rp::bind_interrupts;
 use embassy_rp::dma;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::{InterruptHandler as PioInterruptHandler, Pio};
 use embassy_rp::Peri;
+
 use embassy_time::{Duration, Timer};
+
 use static_cell::StaticCell;
+
+use core_logic::wifi_broker::PacketSender;
+use shared::packets::Packet;
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => PioInterruptHandler<PIO0>;
@@ -25,6 +33,27 @@ bind_interrupts!(struct Irqs {
 /// TODO replace with AP later
 const WIFI_SSID: &str = include_str!("../../secrets/ssid.txt");
 const WIFI_PASSWORD: &str = include_str!("../../secrets/password.txt");
+
+/// The Wi-Fi transporter task
+pub struct WifiTransport {
+    pub stack: Stack<'static>,
+}
+
+impl PacketSender for WifiTransport {
+    type Error = Err;
+
+    async fn send(&mut self, bytes: &[u8]) -> Result<(), Error> {
+        // Create TCP socket
+
+        // Connect
+
+        // Write bytes
+
+        // Close socket
+
+        Ok(())
+    }
+}
 
 #[embassy_executor::task]
 async fn cyw43_task(
@@ -47,7 +76,7 @@ pub async fn init(
     pin_25: Peri<'static, PIN_25>,
     pin_29: Peri<'static, PIN_29>,
     dma_ch0: Peri<'static, DMA_CH0>,
-) -> Stack<'static> {
+) -> WifiTransport {
     // Load CYW43 firmware
     // Taken from: https://github.com/embassy-rs/embassy/raw/main/cyw43-firmware/
     let fw = aligned_bytes!("../cyw43-firmware/43439A0.bin");
@@ -109,5 +138,5 @@ pub async fn init(
 
     stack.wait_config_up().await;
 
-    stack
+    WifiTransport { stack }
 }

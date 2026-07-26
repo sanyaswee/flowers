@@ -47,11 +47,11 @@ async fn main(spawner: Spawner) {
 
     NODE_CONFIG.init(config).unwrap();
 
-    let stack = wifi::init(
+    let wifi_tr = wifi::init(
         spawner, p.PIO0, p.PIN_23, p.PIN_24, p.PIN_25, p.PIN_29, p.DMA_CH0,
     ).await;
 
-    if let Some(config) = stack.config_v4() {
+    if let Some(config) = wifi_tr.stack.config_v4() {
         let ip = config.address.address().octets();
         info!(
             "Network configured! IP address: {}.{}.{}.{}",
