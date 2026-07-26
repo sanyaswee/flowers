@@ -1,10 +1,13 @@
 //! This module contains NodeConfig and related structs / enums
 
+/// Using bare u64 is a bit unintuitive
+pub type NodeId = u64;
+
 /// Each node should have a configuration defined.
 /// Design assumes that each node supports soil moisture reading and pump control on every flower channel
 #[derive(defmt::Format, Debug)]
 pub struct NodeConfig {
-    pub node_id: u64,
+    pub node_id: NodeId,
     // Maximum number on flowers attached to this node
     pub max_flower_channels: u8,
 
@@ -15,7 +18,7 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    pub const fn new(node_id: u64, max_flower_channels: u8, water_tank_detection: WaterTankDetection, telemetry: TelemetryCapabilities) -> Self {
+    pub const fn new(node_id: NodeId, max_flower_channels: u8, water_tank_detection: WaterTankDetection, telemetry: TelemetryCapabilities) -> Self {
         Self {
             node_id, max_flower_channels, water_tank_detection, telemetry
         }
