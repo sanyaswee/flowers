@@ -1,6 +1,6 @@
-//! Wi-Fi driver for the CYW43439 chip on the Pico 2 W.
+//! Wi-Fi driver for the CYW43439 chip on the Pico 2 W
 //!
-//! Calling `wifi::init(...)` once from `main` spawns the driver + network tasks
+//! `wifi::init(...)` spawns the driver + network tasks
 
 use cyw43::aligned_bytes;
 use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};

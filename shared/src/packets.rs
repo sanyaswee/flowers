@@ -15,6 +15,16 @@ impl Packet {
         let header = PacketHeader::new(node_id, uptime_ms);
         Self { header, payload }
     }
+
+    /// JSON serialization in order to send over WiFi
+    pub fn serialize(&self, buffer: &mut [u8]) -> Result<usize, Error> {
+        // TODO
+    }
+
+    /// JSON deserialization after receiving from Wifi
+    pub fn deserialize() -> Result<Self, Error> {
+        // TODO
+    }
 }
 
 /// Packet metadata: node id and timestamp
