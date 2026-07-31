@@ -7,7 +7,7 @@ use embassy_time::{Instant, Timer};
 use shared::telemetry::NodeTelemetry;
 use shared::packets::{Packet, PacketPayload};
 
-use defmt::{error, info};
+use defmt::info;
 
 use crate::NODE_CONFIG;
 

@@ -8,7 +8,8 @@ use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 use defmt::info;
 
 use embassy_executor::Spawner;
-use embassy_net::{Config as NetConfig, Stack, StackResources};
+use embassy_net::tcp::{ConnectError, Error as TcpError, TcpSocket};
+use embassy_net::{Config as NetConfig, IpEndpoint, Ipv4Address, Stack, StackResources};
 
 use embassy_rp::bind_interrupts;
 use embassy_rp::dma;
@@ -21,8 +22,9 @@ use embassy_time::{Duration, Timer};
 
 use static_cell::StaticCell;
 
+use core::str::FromStr;
+
 use core_logic::wifi_broker::PacketSender;
-use shared::packets::Packet;
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => PioInterruptHandler<PIO0>;
@@ -34,23 +36,66 @@ bind_interrupts!(struct Irqs {
 const WIFI_SSID: &str = include_str!("../../secrets/ssid.txt");
 const WIFI_PASSWORD: &str = include_str!("../../secrets/password.txt");
 
+/// Get server address
+/// TODO find a better way to handle this
+const SERVER_IP: &str = include_str!("../../secrets/ip.txt");
+const SERVER_PORT: u16 = 8000;
+
+/// Buffer sizes for the TCP socket.
+const TCP_RX_BUFFER_SIZE: usize = 256;
+const TCP_TX_BUFFER_SIZE: usize = 256;
+
+/// Errors that can occur while sending data over the Wi-Fi
+#[derive(Debug)]
+pub enum TransportError {
+    /// Failed to open the TCP connection to the server
+    Connect(ConnectError),
+    /// Failed while writing to an established connection
+    Io(TcpError),
+}
+
+impl defmt::Format for TransportError {
+    fn format(&self, fmt: defmt::Formatter) {
+        match self {
+            TransportError::Connect(_) => defmt::write!(fmt, "TransportError::Connect"),
+            TransportError::Io(_) => defmt::write!(fmt, "TransportError::Io"),
+        }
+    }
+}
+
 /// The Wi-Fi transporter task
 pub struct WifiTransport {
     pub stack: Stack<'static>,
+    server: IpEndpoint,
 }
 
 impl PacketSender for WifiTransport {
-    type Error = embassy_net::tcp::Error;
+    type Error = TransportError;
 
     async fn send(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
-        // TODO
-        // Create TCP socket
+        // Initialize the buffers
+        let mut rx_buffer = [0u8; TCP_RX_BUFFER_SIZE];
+        let mut tx_buffer = [0u8; TCP_TX_BUFFER_SIZE];
+        let mut socket = TcpSocket::new(self.stack, &mut rx_buffer, &mut tx_buffer);
 
         // Connect
+        socket
+            .connect(self.server)
+            .await
+            .map_err(TransportError::Connect)?;
 
         // Write bytes
+        let mut written = 0;
+        while written < bytes.len() {
+            let n = socket
+                .write(&bytes[written..])
+                .await
+                .map_err(TransportError::Io)?;
+            written += n;
+        }
 
         // Close socket
+        socket.close();
 
         Ok(())
     }
@@ -139,5 +184,11 @@ pub async fn init(
 
     stack.wait_config_up().await;
 
-    WifiTransport { stack }
+    let server_addr = Ipv4Address::from_str(SERVER_IP.trim())
+        .expect("SERVER_IP in secrets/server_ip.txt is not a valid IPv4 address");
+    let server = IpEndpoint::from((server_addr, SERVER_PORT));
+
+    info!("Server target set to {}:{}", SERVER_IP, SERVER_PORT);
+
+    WifiTransport { stack, server }
 }
