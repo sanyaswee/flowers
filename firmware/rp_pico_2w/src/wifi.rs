@@ -8,7 +8,7 @@ use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 use defmt::info;
 
 use embassy_executor::Spawner;
-use embassy_net::tcp::{ConnectError, Error as TcpError, TcpSocket};
+use embassy_net::tcp::{ConnectError, Error as TcpError, TcpSocket, State};
 use embassy_net::{Config as NetConfig, IpEndpoint, Ipv4Address, Stack, StackResources};
 
 use embassy_rp::bind_interrupts;
@@ -18,7 +18,7 @@ use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::{InterruptHandler as PioInterruptHandler, Pio};
 use embassy_rp::Peri;
 
-use embassy_time::{Duration, Timer};
+use embassy_time::{Duration, Timer, with_timeout};
 
 use static_cell::StaticCell;
 
@@ -45,6 +45,10 @@ const SERVER_PORT: u16 = 8000;
 const TCP_RX_BUFFER_SIZE: usize = 256;
 const TCP_TX_BUFFER_SIZE: usize = 256;
 
+/// Actual TCP socket buffers
+static RX_BUFFER: StaticCell<[u8; TCP_RX_BUFFER_SIZE]> = StaticCell::new();
+static TX_BUFFER: StaticCell<[u8; TCP_TX_BUFFER_SIZE]> = StaticCell::new();
+
 /// Errors that can occur while sending data over the Wi-Fi
 #[derive(Debug)]
 pub enum TransportError {
@@ -52,6 +56,8 @@ pub enum TransportError {
     Connect(ConnectError),
     /// Failed while writing to an established connection
     Io(TcpError),
+    /// Connection timed out
+    Timeout,
 }
 
 impl defmt::Format for TransportError {
@@ -59,6 +65,7 @@ impl defmt::Format for TransportError {
         match self {
             TransportError::Connect(_) => defmt::write!(fmt, "TransportError::Connect"),
             TransportError::Io(_) => defmt::write!(fmt, "TransportError::Io"),
+            TransportError::Timeout => defmt::write!(fmt, "TransportError::Timeout"),
         }
     }
 }
@@ -67,39 +74,33 @@ impl defmt::Format for TransportError {
 pub struct WifiTransport {
     pub stack: Stack<'static>,
     server: IpEndpoint,
+    socket: TcpSocket<'static>,
 }
 
 impl PacketSender for WifiTransport {
     type Error = TransportError;
 
     async fn send(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
-        // Initialize the buffers
-        let mut rx_buffer = [0u8; TCP_RX_BUFFER_SIZE];
-        let mut tx_buffer = [0u8; TCP_TX_BUFFER_SIZE];
-        let mut socket = TcpSocket::new(self.stack, &mut rx_buffer, &mut tx_buffer);
 
-        // Connect
-        info!("Connecting");
-        socket
-            .connect(self.server)
-            .await
-            .map_err(TransportError::Connect)?;
-        info!("Connected");
+        // Reconnect only if the socket isn't already usable
+        if self.socket.state() != State::Established {
+            info!("Connecting");
+            self.socket
+                .connect(self.server)
+                .await
+                .map_err(TransportError::Connect)?;
+            info!("Connected");
+        }
 
-        // Write bytes
         let mut written = 0;
         while written < bytes.len() {
-            info!("Sending {} bytes", bytes.len());
-            let n = socket
+            let n = self.socket
                 .write(&bytes[written..])
                 .await
                 .map_err(TransportError::Io)?;
-            info!("Wrote {} bytes", n);
             written += n;
         }
-
-        // Close socket
-        socket.close();
+        self.socket.flush().await.map_err(TransportError::Io)?;
 
         Ok(())
     }
@@ -157,7 +158,7 @@ pub async fn init(
 
     control.init(clm).await;
     control
-        .set_power_management(cyw43::PowerManagementMode::PowerSave)
+        .set_power_management(cyw43::PowerManagementMode::None)
         .await;
 
     // Network setup
@@ -194,5 +195,9 @@ pub async fn init(
 
     info!("Server target set to {}:{}", SERVER_IP, SERVER_PORT);
 
-    WifiTransport { stack, server }
+    let rx_buffer = RX_BUFFER.init([0u8; TCP_RX_BUFFER_SIZE]);
+    let tx_buffer = TX_BUFFER.init([0u8; TCP_TX_BUFFER_SIZE]);
+    let socket = TcpSocket::new(stack, rx_buffer, tx_buffer);
+
+    WifiTransport { stack, server, socket }
 }
