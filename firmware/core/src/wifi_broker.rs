@@ -7,7 +7,7 @@ use embassy_time::{Instant, Timer};
 use shared::telemetry::NodeTelemetry;
 use shared::packets::{Packet, PacketPayload};
 
-use defmt::info;
+use defmt::{error, info};
 
 use crate::NODE_CONFIG;
 
@@ -32,14 +32,30 @@ async fn create_packet(payload: PacketPayload) -> Packet {
 /// The task to send the telemetry to the server
 pub async fn telemetry_sender<S>(sender: &mut S)
 where
-    S: PacketSender,
+    S: PacketSender, <S as PacketSender>::Error: defmt::Format
 {
     loop {
         let telemetry = TELEMETRY_CHANNEL.receive().await;
         let packet = create_packet(PacketPayload::Telemetry(telemetry)).await;
         info!("Telemetry packet created: {}", packet);
 
-        // TODO send
+        let mut buf = [0u8; 256];
+        let res = packet.serialize(&mut buf);
+
+        match res {
+            Ok(n) => {
+                let success = sender.send(&buf[..n]).await;
+                match success {
+                    Ok(_) => {},
+                    Err(e) => {
+                        error!("Failed to send packet: {}", e);
+                    }
+                }
+            },
+            Err(e) => {
+                error!("Failed to serialize: {}", packet);
+            }
+        }
 
         Timer::after_millis(200).await;
     }

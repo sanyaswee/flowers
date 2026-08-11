@@ -79,18 +79,22 @@ impl PacketSender for WifiTransport {
         let mut socket = TcpSocket::new(self.stack, &mut rx_buffer, &mut tx_buffer);
 
         // Connect
+        info!("Connecting");
         socket
             .connect(self.server)
             .await
             .map_err(TransportError::Connect)?;
+        info!("Connected");
 
         // Write bytes
         let mut written = 0;
         while written < bytes.len() {
+            info!("Sending {} bytes", bytes.len());
             let n = socket
                 .write(&bytes[written..])
                 .await
                 .map_err(TransportError::Io)?;
+            info!("Wrote {} bytes", n);
             written += n;
         }
 

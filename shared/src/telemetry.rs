@@ -1,7 +1,9 @@
 //! This module contains telemetry related structs
 
+use serde::{Serialize, Deserialize};
+
 /// Node specific telemetry
-#[derive(defmt::Format, Clone)]
+#[derive(defmt::Format, Clone, Serialize, Deserialize)]
 pub struct NodeTelemetry {
     /// Water tank telemetry
     pub water_tank_has_water: Option<bool>,
