@@ -3,7 +3,7 @@
 use serde::{Serialize, Deserialize};
 
 /// Node specific telemetry
-#[derive(defmt::Format, Clone, Serialize, Deserialize)]
+#[derive(defmt::Format, Clone, Serialize, Deserialize, Debug)]
 pub struct NodeTelemetry {
     /// Water tank telemetry
     pub water_tank_has_water: Option<bool>,

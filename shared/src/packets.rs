@@ -24,7 +24,7 @@ impl From<serde_json_core::de::Error> for Error {
 }
 
 /// The generic-ish packet type
-#[derive(defmt::Format, Serialize, Deserialize)]
+#[derive(defmt::Format, Serialize, Deserialize, Debug)]
 pub struct Packet {
     pub header: PacketHeader,
     pub payload: PacketPayload,
@@ -49,7 +49,7 @@ impl Packet {
 }
 
 /// Packet metadata: node id and timestamp
-#[derive(defmt::Format, Serialize, Deserialize)]
+#[derive(defmt::Format, Serialize, Deserialize, Debug)]
 pub struct PacketHeader {
     pub node_id: NodeId,
     pub uptime_ms: u64, // real timestamp should be computed on the server side
@@ -62,7 +62,7 @@ impl PacketHeader {
 }
 
 /// Enum for all packet types
-#[derive(defmt::Format, Serialize, Deserialize)]
+#[derive(defmt::Format, Serialize, Deserialize, Debug)]
 pub enum PacketPayload {
     /// Standard telemetry packet, sent repeatedly over certain interval
     Telemetry(NodeTelemetry)
