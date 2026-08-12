@@ -1,7 +1,10 @@
 # Firmware
-This crate contains firmware for the nodes, separated into abstract `core` and chip-specific drivers
+This directory contains all firmware for the nodes
 
-## Currently available nodes
-| Node       | Price | Max flowers | Water tank detection | Temperature | Air humidity | Light intensity | Pressure |
-|------------|-------|-------------|----------------------|-------------|--------------|-----------------|----------|
-| RP Pico 2W | <25€  | 2           | Exact level          | Yes         | No           | Yes             | Yes      |
+## Directory documentation
+### core
+This crate contains chip-independent firmware that is shared by all nodes
+### cyw43
+These are the proprietary binary drivers for cyw43 WI-Fi + Bluetooth chip
+### nodes
+These are all implemented nodes

@@ -33,12 +33,12 @@ bind_interrupts!(struct Irqs {
 
 /// Load Wi-Fi credentials
 /// TODO replace with AP later
-const WIFI_SSID: &str = include_str!("../../secrets/ssid.txt");
-const WIFI_PASSWORD: &str = include_str!("../../secrets/password.txt");
+const WIFI_SSID: &str = include_str!("../../../secrets/ssid.txt");
+const WIFI_PASSWORD: &str = include_str!("../../../secrets/password.txt");
 
 /// Get server address
 /// TODO find a better way to handle this
-const SERVER_IP: &str = include_str!("../../secrets/ip.txt");
+const SERVER_IP: &str = include_str!("../../../secrets/ip.txt");
 const SERVER_PORT: u16 = 8000;
 
 /// Buffer sizes for the TCP socket.
@@ -130,9 +130,9 @@ pub async fn init(
 ) -> WifiTransport {
     // Load CYW43 firmware
     // Taken from: https://github.com/embassy-rs/embassy/raw/main/cyw43-firmware/
-    let fw = aligned_bytes!("../cyw43-firmware/43439A0.bin");
-    let clm = aligned_bytes!("../cyw43-firmware/43439A0_clm.bin");
-    let nvram = aligned_bytes!("../cyw43-firmware/nvram_rp2040.bin");
+    let fw = aligned_bytes!("../../../cyw43/43439A0.bin");
+    let clm = aligned_bytes!("../../../cyw43/43439A0_clm.bin");
+    let nvram = aligned_bytes!("../../../cyw43/nvram_rp2040.bin");
 
     // Hardware setup
     let pwr = Output::new(pin_23, Level::Low);

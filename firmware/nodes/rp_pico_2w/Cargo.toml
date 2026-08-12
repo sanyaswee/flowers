@@ -11,9 +11,9 @@ bench = false
 
 [dependencies]
 # Core
-core-logic = { path = "../core" }
+core-logic = { path = "../../core" }
 
-shared = { path = "../../shared" }
+shared = { path = "../../../shared" }
 
 # Embassy
 embassy-executor = { version = "0.10", features = ["defmt", "platform-cortex-m", "executor-thread"] }
