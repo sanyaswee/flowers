@@ -10,6 +10,7 @@ use shared::packets::{Packet, PacketPayload};
 use defmt::{error, info};
 
 use crate::NODE_CONFIG;
+use crate::network_status::{NETWORK_STATUS, NetworkStatus};
 
 /// The channel for receiving the telemetry from telemetry_broker
 pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, NodeTelemetry, 16> = Channel::new();
@@ -34,6 +35,8 @@ pub async fn telemetry_sender<S>(sender: &mut S)
 where
     S: PacketSender, <S as PacketSender>::Error: defmt::Format
 {
+    let tx = NETWORK_STATUS.sender();
+    let mut rx = NETWORK_STATUS.receiver().unwrap();
     loop {
         let telemetry = TELEMETRY_CHANNEL.receive().await;
         let packet = create_packet(PacketPayload::Telemetry(telemetry)).await;
@@ -46,9 +49,15 @@ where
             Ok(n) => {
                 let success = sender.send(&buf[..n]).await;
                 match success {
-                    Ok(_) => {},
+                    Ok(_) => {
+                        let state = rx.get().await;
+                        if state != NetworkStatus::Connected {
+                            tx.send(NetworkStatus::Connected);
+                        }
+                    },
                     Err(e) => {
                         error!("Failed to send packet: {}", e);
+                        tx.send(NetworkStatus::HostNotFound);
                     }
                 }
             },

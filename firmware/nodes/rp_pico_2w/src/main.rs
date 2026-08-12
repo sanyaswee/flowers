@@ -12,6 +12,7 @@ use panic_probe as _;
 
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
+use embassy_rp::gpio::{Output, Level};
 use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler};
 use embassy_rp::peripherals;
 use embassy_rp::otp;
@@ -49,6 +50,10 @@ async fn main(spawner: Spawner) {
     );
 
     NODE_CONFIG.init(config).unwrap();
+
+    // Setup network status LED before any network operations
+    let network_status_led = Output::new(p.PIN_18, Level::High);
+    spawner.spawn(track_network(network_status_led).unwrap());
 
     let wifi_tr = wifi::init(
         spawner, p.PIO0, p.PIN_23, p.PIN_24, p.PIN_25, p.PIN_29, p.DMA_CH0,

@@ -9,6 +9,7 @@ pub mod bh1750;
 pub mod bmp280;
 pub mod telemetry_broker;
 pub mod wifi_broker;
+pub mod network_status;
 
 /// Node configuration declaration
 /// This should set this upon boot
