@@ -1,4 +1,4 @@
-name: Firmware CI
+name: Build nodes
 
 on:
   push:
@@ -16,15 +16,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          targets: thumbv8m.main-none-eabihf
+          components: clippy
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "firmware/nodes/*"
 
-      - name: Build firmware
+      - name: Build all firmwares
         run: |
-          cargo build \
-            -p rp-pico-2w \
-            --release \
-            --target thumbv8m.main-none-eabihf
+          cd firmware/nodes
+          
+          for node_dir in */; do
+            if [ -f "${node_dir}Cargo.toml" ]; then
+              echo "::group::Building ${node_dir}"
+              cd "${node_dir}"
+          
+              # Resolve and install target
+              TARGET=$(cargo config get build.target 2>/dev/null | tr -d '"' || true)
+              if [ -n "$TARGET" ]; then
+                echo "Installing target: $TARGET"
+                rustup target add "$TARGET"
+              fi
+          
+              # 1. Fail on warnings using Clippy (leaves config.toml rustflags intact)
+              echo "Checking for warnings..."
+              cargo clippy --release -- -D warnings
+          
+              # 2. Build the firmware
+              echo "Running cargo build..."
+              cargo build --release
+          
+              cd ..
+              echo "::endgroup::"
+            fi
+          done
