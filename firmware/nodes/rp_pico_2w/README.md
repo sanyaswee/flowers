@@ -16,7 +16,7 @@ The main limitation of this node is that there are only 3 ADC peripherals onboar
 
 ## Flashing
 ### Wi-Fi credentials
-Before flashing this node, create the `firmware/secrets` directory, and provide there the Wi-Fi credentials.
+Before flashing this node, create the `firmware/secrets/` directory, and provide there the Wi-Fi credentials.
 `build.rs` would verify their existance, but not their correctness, so please double-check.
 `secrets` should contain 3 files:
 1. `ip.txt` => IP address of the backend server within connected network
