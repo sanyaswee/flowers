@@ -24,7 +24,21 @@ pub enum NetworkStatus {
 }
 
 /// Global-accessible network status
-pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 2> = Watch::new();
+pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Watch::new();
+
+/// Constantly try reconnecting to the server if HostNotFound 
+pub async fn auto_reconnect() {
+    let mut rx = NETWORK_STATUS.receiver().unwrap();
+    loop {
+        let state = rx.changed().await;
+        match state { 
+            NetworkStatus::HostNotFound => {
+                // TODO reconnect
+            }
+            _ => {}
+        }
+    }
+}
 
 /// Function to track network status
 /// Should be called before Wi-Fi initialization

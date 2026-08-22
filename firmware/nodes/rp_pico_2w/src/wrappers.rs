@@ -1,7 +1,7 @@
 //! Wrapped tasks from core crate
 
 use core_logic::SharedI2C;
-use core_logic::{bh1750, bmp280, wifi_broker, network_status};
+use core_logic::{bh1750, bmp280, wifi_broker, network_manager};
 
 use embassy_rp::gpio::Output;
 
@@ -29,5 +29,5 @@ pub async fn telemetry_sender(sender: &'static mut WifiTransport) {
 /// Task wrapper for network tracker
 #[embassy_executor::task]
 pub async fn track_network(led: Output<'static>) {
-    network_status::track(led).await;
+    network_manager::track(led).await;
 }

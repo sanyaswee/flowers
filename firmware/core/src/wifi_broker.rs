@@ -10,7 +10,7 @@ use shared::packets::{Packet, PacketPayload};
 use defmt::{error, info};
 
 use crate::NODE_CONFIG;
-use crate::network_status::{NETWORK_STATUS, NetworkStatus};
+use crate::network_manager::{NETWORK_STATUS, NetworkStatus};
 
 /// The channel for receiving the telemetry from telemetry_broker
 pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, NodeTelemetry, 16> = Channel::new();
