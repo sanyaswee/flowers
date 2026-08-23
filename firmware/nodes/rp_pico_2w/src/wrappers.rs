@@ -1,7 +1,7 @@
 //! Wrapped tasks from core crate
 
 use core_logic::SharedI2C;
-use core_logic::{bh1750, bmp280, wifi_broker, network_manager};
+use core_logic::{bh1750, bmp280, network};
 
 use embassy_rp::gpio::Output;
 
@@ -28,17 +28,17 @@ pub async fn read_temp_pressure(bus: &'static SharedI2C<PicoI2c>) {
 /// Task wrapper for telemetry senders
 #[embassy_executor::task]
 pub async fn telemetry_sender(sender: &'static SharedWifiTransport) {
-    wifi_broker::telemetry_sender(sender).await;
+    network::telemetry_sender(sender).await;
 }
 
 /// Task wrapper for network tracker
 #[embassy_executor::task]
 pub async fn track_network(led: Output<'static>) {
-    network_manager::track(led).await;
+    network::track_status(led).await;
 }
 
 /// Task wrapper for auto_reconnect
 #[embassy_executor::task]
 pub async fn auto_reconnect(sender: &'static SharedWifiTransport) {
-    network_manager::auto_reconnect(sender).await;
+    network::auto_reconnect(sender).await;
 }

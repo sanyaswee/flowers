@@ -18,13 +18,13 @@ use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::{InterruptHandler as PioInterruptHandler, Pio};
 use embassy_rp::Peri;
 
-use embassy_time::{Duration, Timer, with_timeout};
+use embassy_time::{Duration, Timer};
 
 use static_cell::StaticCell;
 
 use core::str::FromStr;
 
-use core_logic::wifi_broker::PacketSender;
+use core_logic::network::PacketSender;
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => PioInterruptHandler<PIO0>;

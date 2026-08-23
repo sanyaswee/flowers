@@ -8,8 +8,7 @@ use shared::node_config::NodeConfig;
 pub mod bh1750;
 pub mod bmp280;
 pub mod telemetry_broker;
-pub mod wifi_broker;
-pub mod network_manager;
+pub mod network;
 
 /// Node configuration declaration
 /// This should set this upon boot
