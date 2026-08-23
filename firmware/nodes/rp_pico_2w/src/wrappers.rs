@@ -5,8 +5,13 @@ use core_logic::{bh1750, bmp280, wifi_broker, network_manager};
 
 use embassy_rp::gpio::Output;
 
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::mutex::Mutex;
+
 use crate::PicoI2c;
 use crate::wifi::WifiTransport;
+
+pub type SharedWifiTransport = Mutex<CriticalSectionRawMutex, WifiTransport>;
 
 /// Task wrapper for BH1750
 #[embassy_executor::task]
@@ -22,7 +27,7 @@ pub async fn read_temp_pressure(bus: &'static SharedI2C<PicoI2c>) {
 
 /// Task wrapper for telemetry senders
 #[embassy_executor::task]
-pub async fn telemetry_sender(sender: &'static mut WifiTransport) {
+pub async fn telemetry_sender(sender: &'static SharedWifiTransport) {
     wifi_broker::telemetry_sender(sender).await;
 }
 
@@ -30,4 +35,10 @@ pub async fn telemetry_sender(sender: &'static mut WifiTransport) {
 #[embassy_executor::task]
 pub async fn track_network(led: Output<'static>) {
     network_manager::track(led).await;
+}
+
+/// Task wrapper for auto_reconnect
+#[embassy_executor::task]
+pub async fn auto_reconnect(sender: &'static SharedWifiTransport) {
+    network_manager::auto_reconnect(sender).await;
 }

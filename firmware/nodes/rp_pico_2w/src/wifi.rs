@@ -54,10 +54,12 @@ static TX_BUFFER: StaticCell<[u8; TCP_TX_BUFFER_SIZE]> = StaticCell::new();
 pub enum TransportError {
     /// Failed to open the TCP connection to the server
     Connect(ConnectError),
+
     /// Failed while writing to an established connection
     Io(TcpError),
-    /// Connection timed out
-    Timeout,
+
+    /// send() called while not connected
+    NotConnected,
 }
 
 impl defmt::Format for TransportError {
@@ -65,7 +67,7 @@ impl defmt::Format for TransportError {
         match self {
             TransportError::Connect(_) => defmt::write!(fmt, "TransportError::Connect"),
             TransportError::Io(_) => defmt::write!(fmt, "TransportError::Io"),
-            TransportError::Timeout => defmt::write!(fmt, "TransportError::Timeout"),
+            TransportError::NotConnected => defmt::write!(fmt, "TransportError::NotConnected"),
         }
     }
 }
@@ -81,28 +83,33 @@ impl PacketSender for WifiTransport {
     type Error = TransportError;
 
     async fn send(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
-
-        // Reconnect only if the socket isn't already usable
         if self.socket.state() != State::Established {
-            info!("Connecting");
-            self.socket
-                .connect(self.server)
-                .await
-                .map_err(TransportError::Connect)?;
-            info!("Connected");
+            return Err(TransportError::NotConnected);
         }
 
         let mut written = 0;
         while written < bytes.len() {
-            let n = self.socket
-                .write(&bytes[written..])
-                .await
-                .map_err(TransportError::Io)?;
+            let n = self.socket.write(&bytes[written..]).await.map_err(|e| {
+                // Write failed mid-stream: force the socket closed so the
+                // next reconnect() attempt starts clean rather than being
+                // fooled by a half-dead state.
+                self.socket.abort();
+                TransportError::Io(e)
+            })?;
             written += n;
         }
-        self.socket.flush().await.map_err(TransportError::Io)?;
+        self.socket.flush().await.map_err(TransportError::Io)
+    }
 
-        Ok(())
+    async fn reconnect(&mut self) -> Result<(), Self::Error> {
+        if self.socket.state() == State::Established {
+            return Ok(());
+        }
+        self.socket.abort(); // clean slate in case it's in some half-open state
+        self.socket
+            .connect(self.server)
+            .await
+            .map_err(TransportError::Connect)
     }
 }
 

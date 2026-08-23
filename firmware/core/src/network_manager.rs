@@ -4,10 +4,13 @@ use embedded_hal::digital::OutputPin;
 
 use embassy_futures::select::{select, Either};
 
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex};
+use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::Watch;
 
-use embassy_time::Timer;
+use embassy_time::{Duration, Timer};
+
+use crate::wifi_broker::PacketSender;
 
 /// Enum with all possible network statuses
 #[derive(Clone, PartialEq)]
@@ -15,9 +18,11 @@ pub enum NetworkStatus {
     /// Completely disconnected from Wi-Fi (default state on boot)
     /// Indicated by the blinking LED
     Disconnected,
+
     /// Connected to the network, but could not locate the backend host
     /// Indicated by the shining LED
     HostNotFound,
+
     /// Successfully connected to host
     /// Indicated by turned off LED
     Connected
@@ -27,15 +32,37 @@ pub enum NetworkStatus {
 pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Watch::new();
 
 /// Constantly try reconnecting to the server if HostNotFound 
-pub async fn auto_reconnect() {
+pub async fn auto_reconnect<M, S>(sender: &Mutex<M, S>)
+where
+    M: RawMutex,
+    S: PacketSender,
+{
+    let tx = NETWORK_STATUS.sender();
     let mut rx = NETWORK_STATUS.receiver().unwrap();
     loop {
         let state = rx.changed().await;
-        match state { 
-            NetworkStatus::HostNotFound => {
-                // TODO reconnect
+        if state != NetworkStatus::HostNotFound {
+            continue;
+        }
+
+        let mut cooldown = Duration::from_secs(1);
+        loop {
+            let result = sender.lock().await.reconnect().await;
+            if result.is_ok() {
+                tx.send(NetworkStatus::Connected);
+                break;
             }
-            _ => {}
+
+            match select(Timer::after(cooldown), rx.changed()).await {
+                Either::First(_) => {
+                    cooldown = (cooldown * 2).min(Duration::from_secs(30));
+                }
+                Either::Second(new) => {
+                    if new != NetworkStatus::HostNotFound {
+                        break;
+                    }
+                }
+            }
         }
     }
 }
