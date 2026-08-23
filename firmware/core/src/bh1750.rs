@@ -6,6 +6,7 @@ use embassy_time::Timer;
 use defmt::{error};
 
 use crate::SharedI2C;
+use crate::settings;
 use crate::telemetry_broker::TELEMETRY;
 
 /// I2C address for BH1750FVI
@@ -70,6 +71,6 @@ where
             }
         };
 
-        Timer::after_secs(1).await;
+        Timer::after_secs(settings::LIGHT_INTENSITY_M_FREQ_S).await;
     }
 }

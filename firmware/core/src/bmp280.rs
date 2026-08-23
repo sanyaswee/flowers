@@ -4,6 +4,8 @@
 use embedded_hal_async::i2c::I2c;
 use embassy_time::Timer;
 use defmt::{error, info};
+
+use crate::settings;
 use crate::SharedI2C;
 use crate::telemetry_broker::TELEMETRY;
 
@@ -162,6 +164,6 @@ where
             }
         }
 
-        Timer::after_secs(1).await;
+        Timer::after_secs(settings::BMPE_M_FREQ_S).await;
     }
 }

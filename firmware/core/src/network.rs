@@ -15,6 +15,7 @@ use embedded_hal::digital::OutputPin;
 use shared::packets::{Packet, PacketPayload};
 
 use crate::NODE_CONFIG;
+use crate::settings;
 
 /// Enum with all possible network statuses
 #[derive(Clone, PartialEq)]
@@ -138,6 +139,7 @@ pub async fn track_status<P: OutputPin>(mut led: P) {
 }
 
 /// The task to send the telemetry to the server
+/// TODO queue packets if server is down
 pub async fn telemetry_sender<M, S>(sender: &Mutex<M, S>)
 where
     M: RawMutex,
@@ -171,6 +173,6 @@ where
             }
         }
 
-        Timer::after_millis(200).await;
+        Timer::after_millis(settings::TELEMETRY_SENDER_COOLDOWN_MS).await;
     }
 }

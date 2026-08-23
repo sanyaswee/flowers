@@ -9,6 +9,7 @@ pub mod bh1750;
 pub mod bmp280;
 pub mod telemetry_broker;
 pub mod network;
+mod settings;
 
 /// Node configuration declaration
 /// This should set this upon boot

@@ -7,8 +7,11 @@ use embassy_time::Timer;
 use shared::telemetry::NodeTelemetry;
 
 use defmt::info;
+
 use shared::packets::PacketPayload;
+
 use crate::network::{create_packet, TELEMETRY_CHANNEL};
+use crate::settings;
 
 /// Shared telemetry mutex
 pub static TELEMETRY: Mutex<ThreadModeRawMutex, NodeTelemetry> = Mutex::new(NodeTelemetry::new());
@@ -25,6 +28,6 @@ pub async fn gather() {
         info!("Telemetry gathered: {}", t);
         let packet = create_packet(PacketPayload::Telemetry(t)).await;
         TELEMETRY_CHANNEL.send(packet).await;
-        Timer::after_secs(5).await;
+        Timer::after_secs(settings::TELEMETRY_PACKET_CREATION_COOLDOWN_S).await;
     }
 }
