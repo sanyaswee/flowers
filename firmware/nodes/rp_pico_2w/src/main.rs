@@ -74,12 +74,14 @@ async fn main(spawner: Spawner) {
 
     let shared_i2c = I2C_BUS.init(Mutex::new(i2c));
 
+    // Telemetry tasks
     spawner.spawn(read_light_intensity(shared_i2c).unwrap());
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
-
     spawner.spawn(telemetry_broker::gather().unwrap());
-    spawner.spawn(telemetry_sender(wifi_tr).unwrap());
+
+    // Network tasks
     spawner.spawn(auto_reconnect(wifi_tr).unwrap());
+    spawner.spawn(telemetry_sender(wifi_tr).unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
 }

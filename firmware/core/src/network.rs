@@ -37,7 +37,7 @@ pub enum NetworkStatus {
 pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Watch::new();
 
 /// The channel for receiving the telemetry from telemetry_broker
-pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, Packet, 16> = Channel::new();
+pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, Packet, { settings::TELEMETRY_CHANNEL_SIZE  }> = Channel::new();
 
 /// This trait should be implemented in the node specific crate
 pub trait PacketSender {
@@ -58,7 +58,8 @@ pub async fn create_packet(payload: PacketPayload) -> Packet {
     Packet::new(id, uptime, payload)
 }
 
-/// Constantly try reconnecting to the server if HostNotFound 
+/// Constantly try reconnecting to the server if HostNotFound
+/// Should be called BEFORE other network tasks but after track_status
 pub async fn auto_reconnect<M, S>(sender: &Mutex<M, S>)
 where
     M: RawMutex,
@@ -66,6 +67,7 @@ where
 {
     let tx = NETWORK_STATUS.sender();
     let mut rx = NETWORK_STATUS.receiver().unwrap();
+
     loop {
         let state = rx.changed().await;
         if state != NetworkStatus::HostNotFound {
@@ -139,7 +141,6 @@ pub async fn track_status<P: OutputPin>(mut led: P) {
 }
 
 /// The task to send the telemetry to the server
-/// TODO queue packets if server is down
 pub async fn telemetry_sender<M, S>(sender: &Mutex<M, S>)
 where
     M: RawMutex,
@@ -148,7 +149,16 @@ where
     let tx = NETWORK_STATUS.sender();
     let mut rx = NETWORK_STATUS.receiver().unwrap();
 
+    // Trigger auto_reconnect task to connect to the server
+    tx.send(NetworkStatus::HostNotFound);
+
     loop {
+        let state = rx.get().await;
+        if state != NetworkStatus::Connected {
+            Timer::after_secs(15).await;
+            continue;
+        }
+
         let packet = TELEMETRY_CHANNEL.receive().await;
         info!("Telemetry packet processing: {}", packet);
 
