@@ -35,8 +35,6 @@ bind_interrupts!(struct Irqs {
 type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
 static I2C_BUS: StaticCell<SharedI2C<PicoI2c>> = StaticCell::new();
 
-static WIFI_TRANSPORT: StaticCell<SharedWifiTransport> = StaticCell::new();
-
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
@@ -66,8 +64,6 @@ async fn main(spawner: Spawner) {
         );
     }
 
-    let wifi_tr = WIFI_TRANSPORT.init(Mutex::new(wifi_tr));
-
     let sda = p.PIN_16;
     let scl = p.PIN_17;
     let i2c = I2c::new_async(p.I2C0, scl, sda, Irqs, Config::default());
@@ -80,8 +76,9 @@ async fn main(spawner: Spawner) {
     spawner.spawn(telemetry::gather().unwrap());
 
     // Network tasks
-    spawner.spawn(auto_reconnect(wifi_tr).unwrap());
-    spawner.spawn(telemetry_sender(wifi_tr).unwrap());
+    // Pass ownership of the transport directly to the MQTT manager
+    // TODO fix ID
+    spawner.spawn(mqtt_network(wifi_tr, "rp-pico-node-1").unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
 }

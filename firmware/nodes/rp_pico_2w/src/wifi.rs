@@ -10,7 +10,7 @@ use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 use defmt::info;
 
 use embassy_executor::Spawner;
-use embassy_net::tcp::{ConnectError, Error as TcpError, TcpSocket, State};
+use embassy_net::tcp::{ConnectError, TcpSocket};
 use embassy_net::{Config as NetConfig, IpEndpoint, Ipv4Address, Stack, StackResources};
 
 use embassy_rp::bind_interrupts;
@@ -24,7 +24,7 @@ use embassy_time::{Duration, Timer};
 
 use static_cell::StaticCell;
 
-use core_logic::network::PacketSender;
+use core_logic::network::TcpProvider;
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => PioInterruptHandler<PIO0>;
@@ -37,79 +37,31 @@ const WIFI_SSID: &str = include_str!("../../../secrets/ssid.txt");
 const WIFI_PASSWORD: &str = include_str!("../../../secrets/password.txt");
 
 /// Get server address
-/// TODO find a better way to handle this
 const SERVER_IP: &str = include_str!("../../../secrets/ip.txt");
-const SERVER_PORT: u16 = 8000;
-
-/// Buffer sizes for the TCP socket.
-const TCP_RX_BUFFER_SIZE: usize = 256;
-const TCP_TX_BUFFER_SIZE: usize = 256;
-
-/// Actual TCP socket buffers
-static RX_BUFFER: StaticCell<[u8; TCP_RX_BUFFER_SIZE]> = StaticCell::new();
-static TX_BUFFER: StaticCell<[u8; TCP_TX_BUFFER_SIZE]> = StaticCell::new();
-
-/// Errors that can occur while sending data over the Wi-Fi
-#[derive(Debug)]
-pub enum TransportError {
-    /// Failed to open the TCP connection to the server
-    Connect(ConnectError),
-
-    /// Failed while writing to an established connection
-    Io(TcpError),
-
-    /// send() called while not connected
-    NotConnected,
-}
-
-impl defmt::Format for TransportError {
-    fn format(&self, fmt: defmt::Formatter) {
-        match self {
-            TransportError::Connect(_) => defmt::write!(fmt, "TransportError::Connect"),
-            TransportError::Io(_) => defmt::write!(fmt, "TransportError::Io"),
-            TransportError::NotConnected => defmt::write!(fmt, "TransportError::NotConnected"),
-        }
-    }
-}
+const SERVER_PORT: u16 = 1883; // standard MQTT port
 
 /// The Wi-Fi transporter task
 pub struct WifiTransport {
     pub stack: Stack<'static>,
     server: IpEndpoint,
-    socket: TcpSocket<'static>,
 }
 
-impl PacketSender for WifiTransport {
-    type Error = TransportError;
+impl TcpProvider for WifiTransport {
+    type Stream = TcpSocket<'static>;
+    type Error = ConnectError;
 
-    async fn send(&mut self, topic: &str, bytes: &[u8]) -> Result<(), Self::Error> {
-        if self.socket.state() != State::Established {
-            return Err(TransportError::NotConnected);
-        }
+    async fn connect(&mut self) -> Result<Self::Stream, Self::Error> {
+        // Statically allocate buffers to bypass lifetime constraints.
+        // This is safe because the previous socket drops before reconnecting.
+        // Bumped to 1024 to comfortably fit MQTT payloads.
+        static mut TCP_RX: [u8; 1024] = [0; 1024];
+        static mut TCP_TX: [u8; 1024] = [0; 1024];
 
-        let mut written = 0;
-        while written < bytes.len() {
-            let n = self.socket.write(&bytes[written..]).await.map_err(|e| {
-                // Write failed mid-stream: force the socket closed so the
-                // next reconnect() attempt starts clean rather than being
-                // fooled by a half-dead state.
-                self.socket.abort();
-                TransportError::Io(e)
-            })?;
-            written += n;
-        }
-        self.socket.flush().await.map_err(TransportError::Io)
-    }
+        let mut socket = unsafe { TcpSocket::new(self.stack, &mut TCP_RX, &mut TCP_TX) };
 
-    async fn reconnect(&mut self) -> Result<(), Self::Error> {
-        if self.socket.state() == State::Established {
-            return Ok(());
-        }
-        self.socket.abort(); // clean slate in case it's in some half-open state
-        self.socket
-            .connect(self.server)
-            .await
-            .map_err(TransportError::Connect)
+        socket.connect(self.server).await?;
+
+        Ok(socket)
     }
 }
 
@@ -136,7 +88,6 @@ pub async fn init(
     dma_ch0: Peri<'static, DMA_CH0>,
 ) -> WifiTransport {
     // Load CYW43 firmware
-    // Taken from: https://github.com/embassy-rs/embassy/raw/main/cyw43-firmware/
     let fw = aligned_bytes!("../../../cyw43/43439A0.bin");
     let clm = aligned_bytes!("../../../cyw43/43439A0_clm.bin");
     let nvram = aligned_bytes!("../../../cyw43/nvram_rp2040.bin");
@@ -202,9 +153,5 @@ pub async fn init(
 
     info!("Server target set to {}:{}", SERVER_IP, SERVER_PORT);
 
-    let rx_buffer = RX_BUFFER.init([0u8; TCP_RX_BUFFER_SIZE]);
-    let tx_buffer = TX_BUFFER.init([0u8; TCP_TX_BUFFER_SIZE]);
-    let socket = TcpSocket::new(stack, rx_buffer, tx_buffer);
-
-    WifiTransport { stack, server, socket }
+    WifiTransport { stack, server }
 }

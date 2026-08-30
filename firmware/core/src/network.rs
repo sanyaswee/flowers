@@ -1,21 +1,22 @@
 //! This module contains hardware-generic network traits and tasks
 
-use core::fmt::Write;
-
-use defmt::{error, info};
+use core::fmt::Write as _;
 
 use embassy_futures::select::{select, Either};
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex, ThreadModeRawMutex};
 use embassy_sync::channel::Channel;
-use embassy_sync::mutex::Mutex;
 use embassy_sync::watch::Watch;
 
-use embassy_time::{Duration, Instant, Timer};
+use embassy_time::{Instant, Timer};
 
 use embedded_hal::digital::OutputPin;
 
+use embedded_io_async::{Read, Write};
+
 use heapless::String;
+
+use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication};
 
 use shared::packets::{Packet, PacketPayload};
 
@@ -44,15 +45,13 @@ pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Wa
 /// The channel for receiving the telemetry from telemetry_broker
 pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, Packet, { settings::TELEMETRY_CHANNEL_SIZE  }> = Channel::new();
 
-/// This trait should be implemented in the node specific crate
-pub trait PacketSender {
-    type Error;
+/// Should be implemented in the node specific crate
+pub trait TcpProvider {
+    type Stream: Read + Write;
+    type Error: defmt::Format;
 
-    /// Send the packet to the server using MQTT protocol
-    async fn send(&mut self, topic: &str, bytes: &[u8]) -> Result<(), Self::Error>;
-
-    /// (Re)connect to the server
-    async fn reconnect(&mut self) -> Result<(), Self::Error>;
+    /// Establish a raw TCP connection to the broker
+    async fn connect(&mut self) -> Result<Self::Stream, Self::Error>;
 }
 
 /// Function to create a packet from generic payload
@@ -63,37 +62,61 @@ pub async fn create_packet(payload: PacketPayload) -> Packet {
     Packet::new(id, uptime, payload)
 }
 
-/// Constantly try reconnecting to the server if HostNotFound
-/// Should be called BEFORE other network tasks but after track_status
-pub async fn auto_reconnect<M, S>(sender: &Mutex<M, S>)
-where
-    M: RawMutex,
-    S: PacketSender,
-{
+/// The MQTT task
+pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     let tx = NETWORK_STATUS.sender();
-    let mut rx = NETWORK_STATUS.receiver().unwrap();
+
+    // Allocate minimq 0.13.0 buffers directly on the task stack
+    let mut rx_buf = [0u8; 256];
+    let mut tx_buf = [0u8; 768];
+    let buffers = Buffers::new(&mut rx_buf, &mut tx_buf);
+
+    let config = ConfigBuilder::new(buffers)
+        .client_id(client_id).unwrap()
+        .keepalive_interval(60);
+    let mut session = Session::new(config);
 
     loop {
-        let state = rx.changed().await;
-        if state != NetworkStatus::HostNotFound {
-            continue;
-        }
+        tx.send(NetworkStatus::HostNotFound);
 
-        let mut cooldown = Duration::from_secs(1);
-        loop {
-            let result = sender.lock().await.reconnect().await;
-            if result.is_ok() {
-                tx.send(NetworkStatus::Connected);
-                break;
+        // 1. Hardware provides the raw TCP stream
+        let stream = match tcp.connect().await {
+            Ok(s) => s,
+            Err(_) => {
+                Timer::after_secs(2).await;
+                continue;
             }
+        };
 
-            match select(Timer::after(cooldown), rx.changed()).await {
-                Either::First(_) => {
-                    cooldown = (cooldown * 2).min(Duration::from_secs(30));
-                }
-                Either::Second(new) => {
-                    if new != NetworkStatus::HostNotFound {
-                        break;
+        // 2. Core executes MQTT Handshake
+        let mut conn = match session.connect(stream).await {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        tx.send(NetworkStatus::Connected);
+
+        // 3. Core drives polling and publishes telemetry
+        loop {
+            match select(conn.poll(), TELEMETRY_CHANNEL.receive()).await {
+                // Connection or protocol error, drop and reconnect
+                Either::First(Err(_)) => break,
+                // Idle poll success
+                Either::First(Ok(_)) => continue,
+                // New packet queued
+                Either::Second(packet) => {
+                    let mut payload = [0u8; 256];
+                    if let Ok(len) = packet.serialize(&mut payload) {
+
+                        let mut topic: String<64> = String::new();
+                        write!(&mut topic, "node/{}/telemetry", packet.header.node_id).unwrap();
+
+                        let publication = Publication::new(&topic, &payload[..len])
+                            .qos(QoS::AtMostOnce);
+
+                        if conn.publish(publication).await.is_err() {
+                            break;
+                        }
                     }
                 }
             }
@@ -142,55 +165,5 @@ pub async fn track_status<P: OutputPin>(mut led: P) {
         }
 
         state = rx.changed().await;
-    }
-}
-
-/// The task to send the telemetry to the server
-pub async fn telemetry_sender<M, S>(sender: &Mutex<M, S>)
-where
-    M: RawMutex,
-    S: PacketSender, <S as PacketSender>::Error: defmt::Format
-{
-    let tx = NETWORK_STATUS.sender();
-    let mut rx = NETWORK_STATUS.receiver().unwrap();
-
-    // Trigger auto_reconnect task to connect to the server
-    tx.send(NetworkStatus::HostNotFound);
-
-    loop {
-        let state = rx.get().await;
-        if state != NetworkStatus::Connected {
-            Timer::after_secs(15).await;
-            continue;
-        }
-
-        let packet = TELEMETRY_CHANNEL.receive().await;
-        info!("Telemetry packet processing: {}", packet);
-
-        let mut buf = [0u8; 256];
-        match packet.serialize(&mut buf) {
-            Ok(n) => {
-                let mut topic: String<64> = String::new();
-                write!(&mut topic, "node/{}/telemetry", packet.header.node_id).unwrap();
-
-                let result = sender.lock().await.send(&topic, &buf[..n]).await;
-                match result {
-                    Ok(()) => {
-                        if rx.get().await != NetworkStatus::Connected {
-                            tx.send(NetworkStatus::Connected);
-                        }
-                    }
-                    Err(e) => {
-                        error!("Failed to send packet: {}", e);
-                        tx.send(NetworkStatus::HostNotFound);
-                    }
-                }
-            }
-            Err(_) => {
-                error!("Failed to serialize packet");
-            }
-        }
-
-        Timer::after_millis(settings::TELEMETRY_SENDER_COOLDOWN_MS).await;
     }
 }

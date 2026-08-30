@@ -17,7 +17,7 @@ shared = { path = "../../../shared" }
 
 # Embassy
 embassy-executor = { version = "0.10", features = ["defmt", "platform-cortex-m", "executor-thread"] }
-embassy-net = { version = "0.9.1", features = ["tcp", "udp", "dhcpv4", "medium-ethernet"] }
+embassy-net = { version = "0.9.1", features = ["tcp", "udp", "dhcpv4", "medium-ethernet", "defmt"] }
 embassy-rp = { version = "0.10.0", features = ["rp235xa", "defmt", "critical-section-impl", "time-driver"] }
 embassy-sync = "0.8.0"
 embassy-time = "0.5.1"
