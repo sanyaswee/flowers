@@ -2,6 +2,8 @@
 //!
 //! `wifi::init(...)` spawns the driver + network tasks
 
+use core::str::FromStr;
+
 use cyw43::aligned_bytes;
 use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
 
@@ -21,8 +23,6 @@ use embassy_rp::Peri;
 use embassy_time::{Duration, Timer};
 
 use static_cell::StaticCell;
-
-use core::str::FromStr;
 
 use core_logic::network::PacketSender;
 
@@ -82,7 +82,7 @@ pub struct WifiTransport {
 impl PacketSender for WifiTransport {
     type Error = TransportError;
 
-    async fn send(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
+    async fn send(&mut self, topic: &str, bytes: &[u8]) -> Result<(), Self::Error> {
         if self.socket.state() != State::Established {
             return Err(TransportError::NotConnected);
         }

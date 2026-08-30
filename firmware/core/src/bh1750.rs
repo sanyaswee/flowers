@@ -7,7 +7,7 @@ use defmt::{error};
 
 use crate::SharedI2C;
 use crate::settings;
-use crate::telemetry_broker::TELEMETRY;
+use crate::telemetry::TELEMETRY;
 
 /// I2C address for BH1750FVI
 const ADDR: u8 = 0x23;

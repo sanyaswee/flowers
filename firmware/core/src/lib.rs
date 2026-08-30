@@ -7,7 +7,7 @@ use shared::node_config::NodeConfig;
 
 pub mod bh1750;
 pub mod bmp280;
-pub mod telemetry_broker;
+pub mod telemetry;
 pub mod network;
 mod settings;
 

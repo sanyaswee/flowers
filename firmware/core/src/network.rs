@@ -1,6 +1,9 @@
 //! This module contains hardware-generic network traits and tasks
 
+use core::fmt::Write;
+
 use defmt::{error, info};
+
 use embassy_futures::select::{select, Either};
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex, ThreadModeRawMutex};
@@ -11,6 +14,8 @@ use embassy_sync::watch::Watch;
 use embassy_time::{Duration, Instant, Timer};
 
 use embedded_hal::digital::OutputPin;
+
+use heapless::String;
 
 use shared::packets::{Packet, PacketPayload};
 
@@ -43,8 +48,8 @@ pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, Packet, { settings::TE
 pub trait PacketSender {
     type Error;
 
-    /// Send the packet to the server
-    async fn send(&mut self, bytes: &[u8]) -> Result<(), Self::Error>;
+    /// Send the packet to the server using MQTT protocol
+    async fn send(&mut self, topic: &str, bytes: &[u8]) -> Result<(), Self::Error>;
 
     /// (Re)connect to the server
     async fn reconnect(&mut self) -> Result<(), Self::Error>;
@@ -165,7 +170,10 @@ where
         let mut buf = [0u8; 256];
         match packet.serialize(&mut buf) {
             Ok(n) => {
-                let result = sender.lock().await.send(&buf[..n]).await;
+                let mut topic: String<64> = String::new();
+                write!(&mut topic, "node/{}/telemetry", packet.header.node_id).unwrap();
+
+                let result = sender.lock().await.send(&topic, &buf[..n]).await;
                 match result {
                     Ok(()) => {
                         if rx.get().await != NetworkStatus::Connected {

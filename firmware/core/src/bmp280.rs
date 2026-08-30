@@ -7,7 +7,7 @@ use defmt::{error, info};
 
 use crate::settings;
 use crate::SharedI2C;
-use crate::telemetry_broker::TELEMETRY;
+use crate::telemetry::TELEMETRY;
 
 /// I2C address for BMP280
 const ADDR: u8 = 0x76;

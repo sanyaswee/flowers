@@ -22,7 +22,7 @@ use static_cell::StaticCell;
 
 use core_logic::NODE_CONFIG;
 use core_logic::SharedI2C;
-use core_logic::telemetry_broker;
+use core_logic::telemetry;
 
 use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection};
 
@@ -77,7 +77,7 @@ async fn main(spawner: Spawner) {
     // Telemetry tasks
     spawner.spawn(read_light_intensity(shared_i2c).unwrap());
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
-    spawner.spawn(telemetry_broker::gather().unwrap());
+    spawner.spawn(telemetry::gather().unwrap());
 
     // Network tasks
     spawner.spawn(auto_reconnect(wifi_tr).unwrap());

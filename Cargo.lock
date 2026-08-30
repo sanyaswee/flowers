@@ -212,6 +212,8 @@ dependencies = [
  "embassy-time",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
+ "heapless 0.9.3",
+ "minimq",
  "shared",
 ]
 
@@ -1084,6 +1086,21 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+
+[[package]]
+name = "minimq"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "798e1cbc0a5b94acd5024a1f845d4802002ae5c616711d72209d91af6b2b3380"
+dependencies = [
+ "defmt 1.1.1",
+ "embassy-time",
+ "embedded-io-async 0.7.0",
+ "heapless 0.9.3",
+ "num_enum",
+ "serde",
+ "thiserror",
+]
 
 [[package]]
 name = "nb"
