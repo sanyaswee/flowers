@@ -6,6 +6,8 @@
 mod wifi;
 mod wrappers;
 
+use core::fmt::Write as _;
+
 use defmt::info;
 use defmt_rtt as _;
 use panic_probe as _;
@@ -17,6 +19,8 @@ use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler};
 use embassy_rp::peripherals;
 use embassy_rp::otp;
 use embassy_sync::mutex::Mutex;
+
+use heapless::String;
 
 use static_cell::StaticCell;
 
@@ -34,13 +38,16 @@ bind_interrupts!(struct Irqs {
 
 type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
 static I2C_BUS: StaticCell<SharedI2C<PicoI2c>> = StaticCell::new();
+static CLIENT_ID: StaticCell<String<32>> = StaticCell::new();
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
+    let chip_id = otp::get_chipid().unwrap();
+
     let config = NodeConfig::new(
-        otp::get_chipid().unwrap(),
+        chip_id,
         2,
         WaterTankDetection::None,
         TelemetryCapabilities::new(true, false, true, true)
@@ -77,8 +84,9 @@ async fn main(spawner: Spawner) {
 
     // Network tasks
     // Pass ownership of the transport directly to the MQTT manager
-    // TODO fix ID
-    spawner.spawn(mqtt_network(wifi_tr, "rp-pico-node-1").unwrap());
+    let client_id_buf = CLIENT_ID.init(String::new());
+    write!(client_id_buf, "pico-{:016x}", chip_id).unwrap();
+    spawner.spawn(mqtt_network(wifi_tr, client_id_buf.as_str()).unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
 }

@@ -2,6 +2,8 @@
 
 use core::fmt::Write as _;
 
+use defmt::info;
+
 use embassy_futures::select::{select, Either};
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex, ThreadModeRawMutex};
@@ -79,7 +81,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     loop {
         tx.send(NetworkStatus::HostNotFound);
 
-        // 1. Hardware provides the raw TCP stream
+        // raw TCP stream
         let stream = match tcp.connect().await {
             Ok(s) => s,
             Err(_) => {
@@ -88,7 +90,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
             }
         };
 
-        // 2. Core executes MQTT Handshake
+        // core executes MQTT Handshake
         let mut conn = match session.connect(stream).await {
             Ok(c) => c,
             Err(_) => continue,
@@ -96,7 +98,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
 
         tx.send(NetworkStatus::Connected);
 
-        // 3. Core drives polling and publishes telemetry
+        // core drives polling and publishes telemetry
         loop {
             match select(conn.poll(), TELEMETRY_CHANNEL.receive()).await {
                 // Connection or protocol error, drop and reconnect
@@ -106,6 +108,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                 // New packet queued
                 Either::Second(packet) => {
                     let mut payload = [0u8; 256];
+                    info!("Sending packet: {}", packet);
                     if let Ok(len) = packet.serialize(&mut payload) {
 
                         let mut topic: String<64> = String::new();

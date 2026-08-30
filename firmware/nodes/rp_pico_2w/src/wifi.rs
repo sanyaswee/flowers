@@ -51,13 +51,16 @@ impl TcpProvider for WifiTransport {
     type Error = ConnectError;
 
     async fn connect(&mut self) -> Result<Self::Stream, Self::Error> {
-        // Statically allocate buffers to bypass lifetime constraints.
-        // This is safe because the previous socket drops before reconnecting.
-        // Bumped to 1024 to comfortably fit MQTT payloads.
         static mut TCP_RX: [u8; 1024] = [0; 1024];
         static mut TCP_TX: [u8; 1024] = [0; 1024];
 
-        let mut socket = unsafe { TcpSocket::new(self.stack, &mut TCP_RX, &mut TCP_TX) };
+        // Create raw pointers first, then dereference them into mutable slices
+        // to comply with Rust 2024 strict aliasing rules
+        // TODO research if there is a safe way to do so
+        let rx_buf = unsafe { &mut *(&raw mut TCP_RX) };
+        let tx_buf = unsafe { &mut *(&raw mut TCP_TX) };
+
+        let mut socket = TcpSocket::new(self.stack, rx_buf, tx_buf);
 
         socket.connect(self.server).await?;
 
