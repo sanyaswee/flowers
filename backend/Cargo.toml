@@ -6,3 +6,6 @@ edition.workspace = true
 [dependencies]
 # Workspace
 shared = { path = "../shared" }
+
+# MQTT protocol
+rumqttc = "0.25.1"

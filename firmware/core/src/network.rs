@@ -112,7 +112,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                     if let Ok(len) = packet.serialize(&mut payload) {
 
                         let mut topic: String<64> = String::new();
-                        write!(&mut topic, "node/{}/telemetry", packet.header.node_id).unwrap();
+                        write!(&mut topic, "node/{}/telemetry", client_id).unwrap();
 
                         let publication = Publication::new(&topic, &payload[..len])
                             .qos(QoS::AtMostOnce);

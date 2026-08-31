@@ -1,42 +1,47 @@
-//! The host server
+//! The main backend server
 
-use std::io::Read;
-use std::net::TcpListener;
+use rumqttc::{Client, Event, MqttOptions, Packet as MqttPacket, QoS};
+use std::time::Duration;
 
-use shared::packets::Packet;
+use shared::packets::Packet as NodePacket;
 
-/// Address to listen
-/// TODO dynamically allocate later
-const ADDR: &str = "0.0.0.0:8000";
+fn main() {
+    // Connect to local broker
+    let mut mqttoptions = MqttOptions::new("backend-subscriber", "127.0.0.1", 1883);
+    mqttoptions.set_keep_alive(Duration::from_secs(60));
 
-fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind(ADDR);
-    println!("Listening on {}", ADDR);
+    // Initialize the MQTT client with a channel capacity of 100
+    let (mut client, mut connection) = Client::new(mqttoptions, 100);
 
-    for conn in listener?.incoming() {
-        let mut stream = conn?;
-        println!("Node connected: {}", stream.peer_addr()?);
+    // Subscribe to all node telemetry topics
+    client
+        .subscribe("node/+/telemetry", QoS::AtMostOnce)
+        .expect("Failed to subscribe to topic");
 
-        let mut buffer = [0u8; 1024];
+    println!("Listening for MQTT messages on 127.0.0.1:1883...");
 
-        loop {
-            let n = stream.read(&mut buffer)?;
-
-            if n == 0 {
-                println!("Node disconnected");
-                break;
+    // connection.iter() loop automatically handles reconnection and polling
+    for notification in connection.iter() {
+        match notification {
+            Ok(Event::Incoming(MqttPacket::Publish(publish))) => {
+                // Pass the raw byte payload into existing deserialization logic
+                match NodePacket::deserialize(&publish.payload) {
+                    Ok(packet) => {
+                        println!("Received from {}:\n{packet:#?}", publish.topic);
+                    }
+                    Err(err) => {
+                        eprintln!("Failed to deserialize packet from {}: {err:?}", publish.topic);
+                    }
+                }
             }
-
-            match Packet::deserialize(&buffer[..n]) {
-                Ok(packet) => {
-                    println!("Received packet: {packet:#?}");
-                }
-                Err(err) => {
-                    eprintln!("Failed to deserialize packet: {err:?}");
-                }
+            Ok(_) => {
+                // Ignore PINGRESP, SUBACK, and other protocol control packets
+            }
+            Err(e) => {
+                eprintln!("Broker connection error: {e:?}");
+                // rumqttc automatically attempts to reconnect in the background
+                std::thread::sleep(Duration::from_secs(2));
             }
         }
     }
-
-    Ok(())
 }
