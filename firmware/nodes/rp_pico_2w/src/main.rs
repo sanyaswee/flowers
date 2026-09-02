@@ -13,11 +13,15 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use embassy_executor::Spawner;
+
+use embassy_rp::adc::{Adc, Config as AdcConfig, Channel as AdcChannel, InterruptHandler as AdcInterruptHandler};
 use embassy_rp::bind_interrupts;
-use embassy_rp::gpio::{Output, Level};
+use embassy_rp::gpio::{Output, Level, Pull};
 use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler};
 use embassy_rp::peripherals;
 use embassy_rp::otp;
+
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 
 use heapless::String;
@@ -33,11 +37,16 @@ use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection}
 use wrappers::*;
 
 bind_interrupts!(struct Irqs {
+    ADC_IRQ_FIFO => AdcInterruptHandler;
     I2C0_IRQ => InterruptHandler<peripherals::I2C0>;
 });
 
 type PicoI2c = I2c<'static, peripherals::I2C0, Async>;
 static I2C_BUS: StaticCell<SharedI2C<PicoI2c>> = StaticCell::new();
+
+type PicoAdcType = PicoAdc;
+static ADC_BUS: StaticCell<Mutex<NoopRawMutex, PicoAdcType>> = StaticCell::new();
+
 static CLIENT_ID: StaticCell<String<32>> = StaticCell::new();
 
 #[embassy_executor::main]
@@ -71,16 +80,23 @@ async fn main(spawner: Spawner) {
         );
     }
 
+    // Init I2C bus
     let sda = p.PIN_16;
     let scl = p.PIN_17;
     let i2c = I2c::new_async(p.I2C0, scl, sda, Irqs, Config::default());
-
     let shared_i2c = I2C_BUS.init(Mutex::new(i2c));
 
     // Telemetry tasks
     spawner.spawn(read_light_intensity(shared_i2c).unwrap());
     spawner.spawn(read_temp_pressure(shared_i2c).unwrap());
     spawner.spawn(telemetry::gather().unwrap());
+
+    // Water tank tasks
+    let adc = Adc::new(p.ADC, Irqs, AdcConfig::default());
+    let shared_adc = ADC_BUS.init(Mutex::new(PicoAdc(adc)));
+    let adc_pin = AdcChannel::new_pin(p.PIN_26, Pull::Down);
+    let power_pin = Output::new(p.PIN_22, Level::Low);
+    spawner.spawn(read_water_level(shared_adc, adc_pin, power_pin).unwrap());
 
     // Network tasks
     // Pass ownership of the transport directly to the MQTT manager

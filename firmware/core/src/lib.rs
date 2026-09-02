@@ -10,6 +10,8 @@ pub mod bmp280;
 pub mod telemetry;
 pub mod network;
 mod settings;
+pub mod water_tank;
+pub mod adc;
 
 /// Node configuration declaration
 /// This should set this upon boot
