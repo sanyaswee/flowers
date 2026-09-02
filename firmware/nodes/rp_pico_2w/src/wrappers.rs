@@ -2,7 +2,7 @@
 
 use core_logic::adc::AdcProvider;
 use core_logic::SharedI2C;
-use core_logic::{bh1750, bmp280, network, water_tank};
+use core_logic::{bh1750, bmp280, network, plant_channel, water_tank};
 
 use embassy_rp::adc::{Adc, Async, Channel as AdcChannel};
 use embassy_rp::gpio::Output;
@@ -54,9 +54,21 @@ pub async fn mqtt_network(transport: WifiTransport, client_id: &'static str) {
 // Task wrapper for the water level reader
 #[embassy_executor::task]
 pub async fn read_water_level(
-    bus: &'static Mutex<NoopRawMutex, PicoAdc>,
+    adc: &'static Mutex<NoopRawMutex, PicoAdc>,
     pin: AdcChannel<'static>,
     power_pin: Output<'static>,
 ) {
-    water_tank::read_level(bus, pin, power_pin).await;
+    water_tank::read_level(adc, pin, power_pin).await;
+}
+
+// Task wrapper for the plant channel
+#[embassy_executor::task(pool_size = 2)]
+pub async fn plant_channel_task(
+    idx: usize,
+    adc: &'static Mutex<NoopRawMutex, PicoAdc>,
+    moisture_pin: AdcChannel<'static>,
+    moisture_power_pin: Output<'static>,
+    pump_pin: Output<'static>,
+) {
+    plant_channel::plant_channel(idx, adc, moisture_pin, moisture_power_pin, pump_pin).await;
 }
