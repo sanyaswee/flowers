@@ -9,7 +9,7 @@ pub type NodeId = &'static str;
 pub struct NodeConfig {
     pub node_id: NodeId,
     // Maximum number on flowers attached to this node
-    pub max_flower_channels: u8,
+    pub n_plant_channels: u8,
 
     pub water_tank_detection: WaterTankDetection,
 
@@ -20,7 +20,8 @@ pub struct NodeConfig {
 impl NodeConfig {
     pub const fn new(node_id: NodeId, max_flower_channels: u8, water_tank_detection: WaterTankDetection, telemetry: TelemetryCapabilities) -> Self {
         Self {
-            node_id, max_flower_channels, water_tank_detection, telemetry
+            node_id,
+            n_plant_channels: max_flower_channels, water_tank_detection, telemetry
         }
     }
 }

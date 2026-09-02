@@ -7,6 +7,7 @@ use shared::packets::Packet as NodePacket;
 
 fn main() {
     // Connect to local broker
+    println!("Packet size: {} bytes", size_of::<NodePacket>());
     let mut mqttoptions = MqttOptions::new("backend-subscriber", "127.0.0.1", 1883);
     mqttoptions.set_keep_alive(Duration::from_secs(60));
 

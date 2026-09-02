@@ -75,6 +75,8 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
         .client_id(client_id).unwrap()
         .keepalive_interval(60);
     let mut session = Session::new(config);
+    
+    info!("Packet size: {} bytes", size_of::<Packet>());
 
     loop {
         tx.send(NetworkStatus::HostNotFound);
