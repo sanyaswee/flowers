@@ -60,7 +60,7 @@ async fn main(spawner: Spawner) {
     let config = NodeConfig::new(
         client_id_buf.as_str(),
         2,
-        WaterTankDetection::None,
+        WaterTankDetection::LevelDetection,
         TelemetryCapabilities::new(true, false, true, true)
     );
 

@@ -12,6 +12,7 @@ pub mod network;
 mod settings;
 pub mod water_tank;
 pub mod adc;
+pub mod plant_channel;
 
 /// Node configuration declaration
 /// This should set this upon boot

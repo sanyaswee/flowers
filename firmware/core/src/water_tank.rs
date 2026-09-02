@@ -12,6 +12,7 @@ use embedded_hal::digital::OutputPin;
 use crate::adc::AdcProvider;
 use crate::telemetry::TELEMETRY;
 
+/// Read the water tank level
 pub async fn read_level<ADC, PIN, Word, P>(
     adc_bus: &'static Mutex<NoopRawMutex, ADC>,
     mut pin: PIN,
