@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::telemetry::NodeTelemetry;
 
-#[derive(Debug)]
+#[derive(Debug, defmt::Format)]
 pub enum Error {
     Serialize,
     Deserialize,

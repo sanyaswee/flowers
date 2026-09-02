@@ -2,7 +2,7 @@
 
 use core::fmt::Write as _;
 
-use defmt::info;
+use defmt::{error, info};
 
 use embassy_futures::select::{select, Either};
 
@@ -75,7 +75,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
         .client_id(client_id).unwrap()
         .keepalive_interval(60);
     let mut session = Session::new(config);
-    
+
     info!("Packet size: {} bytes", size_of::<Packet>());
 
     loop {
@@ -107,20 +107,28 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                 Either::First(Ok(_)) => continue,
                 // New packet queued
                 Either::Second(packet) => {
-                    let mut payload = [0u8; 256];
+                    let mut payload = [0u8; 512];
                     info!("Sending packet: {}", packet);
-                    if let Ok(len) = packet.serialize(&mut payload) {
+                    let ser = packet.serialize(&mut payload);
+                    match ser  {
+                        Ok(len) => {
+                            let mut topic: String<64> = String::new();
+                            write!(&mut topic, "node/{}/telemetry", client_id).unwrap();
 
-                        let mut topic: String<64> = String::new();
-                        write!(&mut topic, "node/{}/telemetry", client_id).unwrap();
+                            let publication = Publication::new(&topic, &payload[..len])
+                                .qos(QoS::AtMostOnce);
 
-                        let publication = Publication::new(&topic, &payload[..len])
-                            .qos(QoS::AtMostOnce);
+                            if conn.publish(publication).await.is_err() {
+                                error!("Publication error!");
+                                break;
+                            }
 
-                        if conn.publish(publication).await.is_err() {
-                            break;
+                            info!("Packet sent");
+                        },
+                        Err(e) => {
+                            error!("Serialization error: {}", e);
                         }
-                    }
+                    };
                 }
             }
         }

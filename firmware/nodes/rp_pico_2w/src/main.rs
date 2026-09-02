@@ -100,9 +100,13 @@ async fn main(spawner: Spawner) {
     let power_pin = Output::new(p.PIN_22, Level::Low);
     spawner.spawn(read_water_level(shared_adc, adc_pin, power_pin).unwrap());
 
-    // Network tasks
-    // Pass ownership of the transport directly to the MQTT manager
+    // Plant channels
+    let ch1_adc = AdcChannel::new_pin(p.PIN_27, Pull::Down);
+    let ch1_pwr = Output::new(p.PIN_19, Level::Low);
+    let ch1_pump = Output::new(p.PIN_15, Level::Low);
+    spawner.spawn(plant_channel_task(0, shared_adc, ch1_adc, ch1_pwr, ch1_pump).unwrap());
 
+    // Network tasks
     spawner.spawn(mqtt_network(wifi_tr, client_id_buf.as_str()).unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
