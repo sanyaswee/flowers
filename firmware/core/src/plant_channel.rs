@@ -44,7 +44,8 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
                 let max_f32: f32 = max.into();
 
                 // calculate percentage
-                let percentage = (val_f32 / max_f32) * 100.0;
+                // for analog soil moisture sensors -> high = dry, low = wet
+                let percentage = 100.0 - ((val_f32 / max_f32) * 100.0);
 
                 let mut t = TELEMETRY.lock().await;
                 t.plant_telemetry[idx].soil_moisture = Some(percentage);
