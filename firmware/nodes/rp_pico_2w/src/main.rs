@@ -54,9 +54,11 @@ async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
     let chip_id = otp::get_chipid().unwrap();
+    let client_id_buf = CLIENT_ID.init(String::new());
+    write!(client_id_buf, "pico-{:016x}", chip_id).unwrap();
 
     let config = NodeConfig::new(
-        chip_id,
+        client_id_buf.as_str(),
         2,
         WaterTankDetection::None,
         TelemetryCapabilities::new(true, false, true, true)
@@ -100,8 +102,7 @@ async fn main(spawner: Spawner) {
 
     // Network tasks
     // Pass ownership of the transport directly to the MQTT manager
-    let client_id_buf = CLIENT_ID.init(String::new());
-    write!(client_id_buf, "pico-{:016x}", chip_id).unwrap();
+
     spawner.spawn(mqtt_network(wifi_tr, client_id_buf.as_str()).unwrap());
 
     info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);

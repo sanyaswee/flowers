@@ -6,7 +6,7 @@ use defmt::info;
 
 use embassy_futures::select::{select, Either};
 
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, RawMutex, ThreadModeRawMutex};
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, ThreadModeRawMutex};
 use embassy_sync::channel::Channel;
 use embassy_sync::watch::Watch;
 
@@ -22,7 +22,6 @@ use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication};
 
 use shared::packets::{Packet, PacketPayload};
 
-use crate::NODE_CONFIG;
 use crate::settings;
 
 /// Enum with all possible network statuses
@@ -58,10 +57,9 @@ pub trait TcpProvider {
 
 /// Function to create a packet from generic payload
 pub async fn create_packet(payload: PacketPayload) -> Packet {
-    let id = NODE_CONFIG.get().await.node_id;
     let uptime = Instant::now().as_millis();
 
-    Packet::new(id, uptime, payload)
+    Packet::new(uptime, payload)
 }
 
 /// The MQTT task

@@ -1,7 +1,7 @@
 //! This module contains NodeConfig and related structs / enums
 
 /// Using bare u64 is a bit unintuitive
-pub type NodeId = u64;
+pub type NodeId = &'static str;
 
 /// Each node should have a configuration defined.
 /// Design assumes that each node supports soil moisture reading and pump control on every flower channel
