@@ -7,8 +7,10 @@ pub type NodeId = heapless::String<32>;
 /// Each node should have a configuration defined.
 /// Design assumes that each node supports soil moisture reading and pump control on every flower channel
 #[derive(defmt::Format, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct NodeConfig {
     pub node_id: NodeId,
+
     // Maximum number on flowers attached to this node
     pub n_plant_channels: u8,
 
@@ -29,6 +31,7 @@ impl NodeConfig {
 
 /// Supported telemetry options
 #[derive(defmt::Format, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct TelemetryCapabilities {
     pub temperature: bool,
     pub humidity: bool,
