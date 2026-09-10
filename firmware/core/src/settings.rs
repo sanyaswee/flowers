@@ -16,12 +16,16 @@ pub const TELEMETRY_CHANNEL_SIZE: usize = 1024;
 /// ---
 
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::signal::Signal;
 use embassy_sync::watch::Watch;
 
 use shared::node_settings::NodeSettings;
 
 /// Watch that contains current settings
 pub static DYNAMIC_SETTINGS: Watch<CriticalSectionRawMutex, NodeSettings, 1> = Watch::new();
+
+/// Signal used for providing the new settings
+pub static OVERWRITE_SIG: Signal<CriticalSectionRawMutex, NodeSettings> = Signal::new();
 
 /// Task that is responsible for updating settings
 #[embassy_executor::task]
@@ -30,5 +34,8 @@ pub async fn settings_monitor() {
     // Initialize the default settings
     tx.send(NodeSettings::default());
     
-    // TODO await updates from server
+    loop {
+        let new = OVERWRITE_SIG.wait().await;
+        tx.send(new);
+    }
 }
