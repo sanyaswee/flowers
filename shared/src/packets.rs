@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::node_config::NodeConfig;
+use crate::node_settings::NodeSettings;
 use crate::telemetry::NodeTelemetry;
 
 #[derive(Debug, defmt::Format)]
@@ -61,7 +63,15 @@ impl PacketHeader {
 
 /// Enum for all packet types
 #[derive(defmt::Format, Serialize, Deserialize, Debug)]
+#[non_exhaustive]
 pub enum PacketPayload {
     /// Standard telemetry packet, sent repeatedly over certain interval
-    Telemetry(NodeTelemetry)
+    Telemetry(NodeTelemetry),
+
+    /// The packet sent by the board when it boots
+    /// Contains node config. Followed by the settings override packet
+    Boot(NodeConfig),
+
+    /// Packet sent by server that contains the actual node settings
+    Settings(NodeSettings),
 }

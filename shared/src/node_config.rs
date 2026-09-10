@@ -1,11 +1,12 @@
 //! This module contains NodeConfig and related structs / enums
 
-/// Using bare u64 is a bit unintuitive
-pub type NodeId = &'static str;
+use serde::{Deserialize, Serialize};
+
+pub type NodeId = heapless::String<32>;
 
 /// Each node should have a configuration defined.
 /// Design assumes that each node supports soil moisture reading and pump control on every flower channel
-#[derive(defmt::Format, Debug)]
+#[derive(defmt::Format, Debug, Deserialize, Serialize)]
 pub struct NodeConfig {
     pub node_id: NodeId,
     // Maximum number on flowers attached to this node
@@ -27,7 +28,7 @@ impl NodeConfig {
 }
 
 /// Supported telemetry options
-#[derive(defmt::Format, Debug)]
+#[derive(defmt::Format, Debug, Deserialize, Serialize)]
 pub struct TelemetryCapabilities {
     pub temperature: bool,
     pub humidity: bool,
@@ -44,7 +45,7 @@ impl TelemetryCapabilities {
 }
 
 /// Supported water tank telemetry capabilities
-#[derive(defmt::Format, Debug)]
+#[derive(defmt::Format, Debug, Deserialize, Serialize)]
 pub enum WaterTankDetection {
     None, // no water tank telemetry
     EmptyDetection, // can detect whether the tank is empty or not

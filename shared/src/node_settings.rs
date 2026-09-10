@@ -1,9 +1,11 @@
 //! The dynamic node settings
 
+use serde::{Deserialize, Serialize};
+
 use crate::telemetry::MAX_PLANT_CHANNELS;
 
 /// The main settings struct
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct NodeSettings {
     /// Frequency of creating telemetry packets in seconds
@@ -11,7 +13,7 @@ pub struct NodeSettings {
 
     /// Array of settings per each plant channel
     pub plant_settings: [PlantSettings; MAX_PLANT_CHANNELS],
-    
+
     /// Measurement frequencies
     pub m_freq: MeasurementFrequencies,
 }
@@ -28,12 +30,12 @@ impl Default for NodeSettings {
 
 /// Helper struct that contains all possible measurement frequencies
 /// Convention: <quantity>_<unit>
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct MeasurementFrequencies {
     /// Light intensity measurement
     pub light_intensity_s: u16,
-    
+
     /// BMP / BME measurement frequencies (temp, pressure, humidity)
     pub bmpe_s: u16,
 }
@@ -48,7 +50,7 @@ impl Default for MeasurementFrequencies {
 }
 
 /// Settings per each channel
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
 pub struct PlantSettings {
     /// Channel is enabled
     pub enabled: bool,

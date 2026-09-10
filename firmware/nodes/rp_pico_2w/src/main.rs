@@ -58,7 +58,7 @@ async fn main(spawner: Spawner) {
     write!(client_id_buf, "pico-{:016x}", chip_id).unwrap();
 
     let config = NodeConfig::new(
-        client_id_buf.as_str(),
+        client_id_buf.clone(),
         2,
         WaterTankDetection::LevelDetection,
         TelemetryCapabilities::new(true, false, true, true)
