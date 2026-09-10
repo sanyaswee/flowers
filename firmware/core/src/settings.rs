@@ -22,7 +22,7 @@ use embassy_sync::watch::Watch;
 use shared::node_settings::NodeSettings;
 
 /// Watch that contains current settings
-pub static DYNAMIC_SETTINGS: Watch<CriticalSectionRawMutex, NodeSettings, 1> = Watch::new();
+pub static DYNAMIC_SETTINGS: Watch<CriticalSectionRawMutex, NodeSettings, 5> = Watch::new();
 
 /// Signal used for providing the new settings
 pub static OVERWRITE_SIG: Signal<CriticalSectionRawMutex, NodeSettings> = Signal::new();

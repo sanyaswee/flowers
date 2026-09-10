@@ -70,7 +70,11 @@ pub enum PacketPayload {
 
     /// The packet sent by the board when it boots
     /// Contains node config. Followed by the settings override packet
-    Boot(NodeConfig),
+    NodeBoot(NodeConfig),
+
+    /// Sent by server after its booting
+    /// Followed by a node config packet
+    ServerBoot,
 
     /// Packet sent by server that contains the actual node settings
     Settings(NodeSettings),

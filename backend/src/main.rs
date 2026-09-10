@@ -8,11 +8,11 @@ use shared::packets::Packet as NodePacket;
 fn main() {
     // Connect to local broker
     println!("Packet size: {} bytes", size_of::<NodePacket>());
-    let mut mqttoptions = MqttOptions::new("backend-subscriber", "127.0.0.1", 1883);
-    mqttoptions.set_keep_alive(Duration::from_secs(60));
+    let mut mqtt_options = MqttOptions::new("backend-subscriber", "127.0.0.1", 1883);
+    mqtt_options.set_keep_alive(Duration::from_secs(60));
 
     // Initialize the MQTT client with a channel capacity of 100
-    let (mut client, mut connection) = Client::new(mqttoptions, 100);
+    let (mut client, mut connection) = Client::new(mqtt_options, 100);
 
     // Subscribe to all node telemetry topics
     client
