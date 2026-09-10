@@ -3,7 +3,7 @@
 use serde::{Serialize, Deserialize};
 
 /// Maximum number of plants allowed per node
-const MAX_PLANT_CHANNELS: usize = 8;
+pub(crate) const MAX_PLANT_CHANNELS: usize = 8;
 
 /// Node specific telemetry
 #[derive(defmt::Format, Clone, Serialize, Deserialize, Debug)]

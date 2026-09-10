@@ -30,7 +30,7 @@ use static_cell::StaticCell;
 
 use core_logic::NODE_CONFIG;
 use core_logic::SharedI2C;
-use core_logic::telemetry;
+use core_logic::{settings, telemetry};
 
 use shared::node_config::{NodeConfig, TelemetryCapabilities, WaterTankDetection};
 
@@ -87,6 +87,9 @@ async fn main(spawner: Spawner) {
     let scl = p.PIN_17;
     let i2c = I2c::new_async(p.I2C0, scl, sda, Irqs, Config::default());
     let shared_i2c = I2C_BUS.init(Mutex::new(i2c));
+
+    // Monitor settings updates
+    spawner.spawn(settings::settings_monitor().unwrap());
 
     // Telemetry tasks
     spawner.spawn(read_light_intensity(shared_i2c).unwrap());

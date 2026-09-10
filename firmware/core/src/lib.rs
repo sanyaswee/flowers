@@ -9,7 +9,7 @@ pub mod bh1750;
 pub mod bmp280;
 pub mod telemetry;
 pub mod network;
-mod settings;
+pub mod settings;
 pub mod water_tank;
 pub mod adc;
 pub mod plant_channel;

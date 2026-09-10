@@ -10,7 +10,7 @@ use embassy_time::Timer;
 use embedded_hal::digital::OutputPin;
 
 use crate::adc::AdcProvider;
-use crate::settings;
+use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
 
 /// Plant channel task
@@ -26,6 +26,7 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
     Word: Into<f32>,
     P: OutputPin,
 {
+    let mut settings = DYNAMIC_SETTINGS.receiver().unwrap();
     loop {
         moisture_power_pin.set_high().unwrap();
         Timer::after_secs(2).await;
@@ -56,6 +57,8 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
         }
 
         moisture_power_pin.set_low().unwrap();
-        Timer::after_secs(settings::MOISTURE_M_FREQ_S).await;
+
+        let wait = settings.get().await.plant_settings[idx].moisture_m_freq_s;
+        Timer::after_secs(wait as u64).await;
     }
 }

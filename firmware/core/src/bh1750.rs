@@ -6,7 +6,7 @@ use embassy_time::Timer;
 use defmt::{error};
 
 use crate::SharedI2C;
-use crate::settings;
+use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
 
 /// I2C address for BH1750FVI
@@ -49,6 +49,8 @@ where
         return;
     }
 
+    let mut settings = DYNAMIC_SETTINGS.receiver().unwrap();
+
     Timer::after_millis(200).await;
     let mut buf = [0u8; 2];
 
@@ -71,6 +73,7 @@ where
             }
         };
 
-        Timer::after_secs(settings::LIGHT_INTENSITY_M_FREQ_S).await;
+        let wait = settings.get().await.m_freq.light_intensity_s;
+        Timer::after_secs(wait as u64).await;
     }
 }

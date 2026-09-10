@@ -5,7 +5,7 @@ use embedded_hal_async::i2c::I2c;
 use embassy_time::Timer;
 use defmt::{error, info};
 
-use crate::settings;
+use crate::settings::DYNAMIC_SETTINGS;
 use crate::SharedI2C;
 use crate::telemetry::TELEMETRY;
 
@@ -138,6 +138,8 @@ where
 
     Timer::after_millis(200).await;
 
+    let mut settings = DYNAMIC_SETTINGS.receiver().unwrap();
+    
     let mut data_buf = [0u8; 6];
     loop {
         let result = {
@@ -164,6 +166,7 @@ where
             }
         }
 
-        Timer::after_secs(settings::BMPE_M_FREQ_S).await;
+        let wait = settings.get().await.m_freq.bmpe_s;
+        Timer::after_secs(wait as u64).await;
     }
 }

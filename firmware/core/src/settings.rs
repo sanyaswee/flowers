@@ -1,17 +1,34 @@
-//! This file contains default settings for the node
+//! This file handles node settings
 
-/// Measurement frequencies
-/// Notation - <sensor>_M_FREQ_<unit>
-pub const LIGHT_INTENSITY_M_FREQ_S: u64 = 5;
-pub const BMPE_M_FREQ_S: u64 = 5; // BMP and BME sensors (temp, pressure, humidity)
-pub const MOISTURE_M_FREQ_S: u64 = 60 * 10; // every 10 minutes
+/// ---
+/// Non-dynamic (hardcoded) settings
+/// ---
 
-/// Cooldowns (<name>_COOLDOWN_<unit>)
+/// Minimal cooldown between telemetry packets
 pub const TELEMETRY_SENDER_COOLDOWN_MS: u64 = 200;
-pub const TELEMETRY_PACKET_CREATION_COOLDOWN_S: u64 = 5;
 
 /// Max size of telemetry channel
-/// The channel takes `Packet` structs, whose size is 64 bytes
-/// This in fact determines the maximum amount of server downtime that the board could survive
-/// The value of 1024 gives us 1.4 hours (assuming packet is created every 5s)
+/// This, along with the packet size and packet creation frequency determines the time that the node can survive without server
 pub const TELEMETRY_CHANNEL_SIZE: usize = 1024;
+
+/// ---
+/// Dynamic (server-adjustable) settings
+/// ---
+
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::watch::Watch;
+
+use shared::node_settings::NodeSettings;
+
+/// Watch that contains current settings
+pub static DYNAMIC_SETTINGS: Watch<CriticalSectionRawMutex, NodeSettings, 1> = Watch::new();
+
+/// Task that is responsible for updating settings
+#[embassy_executor::task]
+pub async fn settings_monitor() {
+    let tx = DYNAMIC_SETTINGS.sender();
+    // Initialize the default settings
+    tx.send(NodeSettings::default());
+    
+    // TODO await updates from server
+}
