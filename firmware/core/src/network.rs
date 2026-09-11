@@ -8,7 +8,7 @@ use defmt::{error, info};
 use embassy_futures::select::{select, Either};
 
 use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, ThreadModeRawMutex};
-use embassy_sync::channel::Channel;
+use embassy_sync::priority_channel::{PriorityChannel, Max};
 use embassy_sync::watch::Watch;
 
 use embassy_time::{Instant, Timer};
@@ -79,7 +79,7 @@ impl Ord for PriorityPacketWrapper {
 
 /// The channel for receiving the telemetry from telemetry_broker
 /// TODO maybe PriorityChannel with different packets?
-pub static PACKET_CHANNEL: Channel<ThreadModeRawMutex, Packet, { settings::TELEMETRY_CHANNEL_SIZE  }> = Channel::new();
+pub static PACKET_CHANNEL: PriorityChannel<ThreadModeRawMutex, PriorityPacketWrapper, Max, { settings::TELEMETRY_CHANNEL_SIZE  }> = PriorityChannel::new();
 
 /// Should be implemented in the node specific crate
 pub trait TcpProvider {
@@ -142,6 +142,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                 Either::First(Ok(_)) => continue,
                 // New packet queued
                 Either::Second(packet) => {
+                    let packet = packet.0;
                     let mut payload = [0u8; 512];
                     info!("Sending packet: {}", packet);
                     let ser = packet.serialize(&mut payload);
