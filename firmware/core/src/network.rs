@@ -1,7 +1,6 @@
 //! This module contains hardware-generic network traits and tasks
 
 use core::cmp::Ordering;
-use core::fmt::Write as _;
 
 use defmt::{error, info};
 
@@ -21,6 +20,7 @@ use heapless::String;
 
 use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication};
 
+use shared::mqtt_convention;
 use shared::packets::{Packet, PacketPayload};
 
 use crate::settings;
@@ -149,7 +149,16 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                     match ser  {
                         Ok(len) => {
                             let mut topic: String<64> = String::new();
-                            write!(&mut topic, "node/{}/telemetry", client_id).unwrap();
+
+                            match packet.payload {
+                                PacketPayload::Telemetry(_) => { 
+                                    mqtt_convention::node_telemetry(&mut topic, client_id) 
+                                },
+                                PacketPayload::NodeBoot(_) => {
+                                    mqtt_convention::node_boot(&mut topic, client_id)
+                                },
+                                _ => unreachable!(),
+                            };
 
                             let publication = Publication::new(&topic, &payload[..len])
                                 .qos(QoS::AtMostOnce);
