@@ -10,7 +10,7 @@ use defmt::info;
 
 use shared::packets::PacketPayload;
 
-use crate::network::{create_packet, TELEMETRY_CHANNEL};
+use crate::network::{create_packet, PACKET_CHANNEL};
 use crate::settings::DYNAMIC_SETTINGS;
 
 /// Shared telemetry mutex
@@ -28,7 +28,7 @@ pub async fn gather() {
         };
         info!("Telemetry gathered: {}", t);
         let packet = create_packet(PacketPayload::Telemetry(t)).await;
-        TELEMETRY_CHANNEL.send(packet).await;
+        PACKET_CHANNEL.send(packet).await;
 
         let wait = settings.get().await.telemetry_packet_creation_freq_s;
         Timer::after_secs(wait as u64).await;

@@ -1,5 +1,6 @@
 //! This module contains hardware-generic network traits and tasks
 
+use core::cmp::Ordering;
 use core::fmt::Write as _;
 
 use defmt::{error, info};
@@ -43,8 +44,42 @@ pub enum NetworkStatus {
 /// Global-accessible network status
 pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Watch::new();
 
+/// The wrapper struct for the packet so it can be sorted based on priority
+pub struct PriorityPacketWrapper(pub Packet);
+
+impl PriorityPacketWrapper {
+    fn priority(&self) -> u8 {
+        match &self.0.payload {
+            PacketPayload::NodeBoot(_) => 2,
+            PacketPayload::Telemetry(_) => 1,
+            _ => 0,
+        }
+    }
+}
+
+impl PartialEq for PriorityPacketWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority() == other.priority()
+    }
+}
+
+impl Eq for PriorityPacketWrapper {}
+
+impl PartialOrd for PriorityPacketWrapper {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PriorityPacketWrapper {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority().cmp(&other.priority())
+    }
+}
+
 /// The channel for receiving the telemetry from telemetry_broker
-pub static TELEMETRY_CHANNEL: Channel<ThreadModeRawMutex, Packet, { settings::TELEMETRY_CHANNEL_SIZE  }> = Channel::new();
+/// TODO maybe PriorityChannel with different packets?
+pub static PACKET_CHANNEL: Channel<ThreadModeRawMutex, Packet, { settings::TELEMETRY_CHANNEL_SIZE  }> = Channel::new();
 
 /// Should be implemented in the node specific crate
 pub trait TcpProvider {
@@ -100,7 +135,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
 
         // core drives polling and publishes telemetry
         loop {
-            match select(conn.poll(), TELEMETRY_CHANNEL.receive()).await {
+            match select(conn.poll(), PACKET_CHANNEL.receive()).await {
                 // Connection or protocol error, drop and reconnect
                 Either::First(Err(_)) => break,
                 // Idle poll success
