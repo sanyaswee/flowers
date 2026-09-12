@@ -14,3 +14,15 @@ pub fn node_telemetry(buf: &mut impl Write, node_id: &str) {
 pub fn node_boot(buf: &mut impl Write, node_id: &str) {
     write!(buf, "node/{}/boot", node_id).unwrap();
 }
+
+/// Published by server immediately after it's boot
+/// Node responses with its config (NodeBoot)
+pub fn server_boot(buf: &mut impl Write) {
+    write!(buf, "server/boot").unwrap();
+}
+
+/// Override node settings
+/// Published by server
+pub fn settings_override(buf: &mut impl Write, node_id: &str) {
+    write!(buf, "override/{}", node_id).unwrap();
+}

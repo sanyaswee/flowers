@@ -77,5 +77,5 @@ pub enum PacketPayload {
     ServerBoot,
 
     /// Packet sent by server that contains the actual node settings
-    Settings(NodeSettings),
+    SettingsOverride(NodeSettings),
 }

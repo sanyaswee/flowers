@@ -18,7 +18,7 @@ use embedded_io_async::{Read, Write};
 
 use heapless::String;
 
-use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication};
+use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication, TopicFilter};
 
 use shared::mqtt_convention;
 use shared::packets::{Packet, PacketPayload};
@@ -79,7 +79,6 @@ impl Ord for PriorityPacketWrapper {
 }
 
 /// The channel for receiving the telemetry from telemetry_broker
-/// TODO maybe PriorityChannel with different packets?
 pub static PACKET_CHANNEL: PriorityChannel<ThreadModeRawMutex, PriorityPacketWrapper, Max, { settings::TELEMETRY_CHANNEL_SIZE  }> = PriorityChannel::new();
 
 /// Should be implemented in the node specific crate
@@ -111,7 +110,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
 
     push_boot().await;
 
-    // Allocate minimq 0.13.0 buffers directly on the task stack
+    // Allocate buffers
     let mut rx_buf = [0u8; 256];
     let mut tx_buf = [0u8; 768];
     let buffers = Buffers::new(&mut rx_buf, &mut tx_buf);
@@ -126,7 +125,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     loop {
         tx.send(NetworkStatus::HostNotFound);
 
-        // raw TCP stream
+        // Raw TCP stream
         let stream = match tcp.connect().await {
             Ok(s) => s,
             Err(_) => {
@@ -135,7 +134,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
             }
         };
 
-        // core executes MQTT Handshake
+        // MQTT Handshake
         let mut conn = match session.connect(stream).await {
             Ok(c) => c,
             Err(_) => continue,
@@ -143,7 +142,26 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
 
         tx.send(NetworkStatus::Connected);
 
-        // core drives polling and publishes telemetry
+        // Subscribe to topics
+        // Looks a bit overcomplicated, but I want to keep convention similar between sent and received topics
+        let topics = [
+            TopicFilter::new({
+                let mut t: String<64> = String::new();
+                mqtt_convention::server_boot(&mut t);
+                t.as_str()
+            }),
+            TopicFilter::new({
+                let mut t: String<64> = String::new();
+                let id = NODE_CONFIG.get().await.node_id;
+                mqtt_convention::settings_override(&mut t, id.as_str());
+                t.as_str()
+            })
+        ];
+        if conn.subscribe(&topics, &[]).await.is_err() {
+            continue; // reconnect
+        }
+
+        // Polling and publishing
         loop {
             match select(conn.poll(), PACKET_CHANNEL.receive()).await {
                 // Connection or protocol error, drop and reconnect
