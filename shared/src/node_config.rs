@@ -6,7 +6,7 @@ pub type NodeId = heapless::String<32>;
 
 /// Each node should have a configuration defined.
 /// Design assumes that each node supports soil moisture reading and pump control on every flower channel
-#[derive(defmt::Format, Debug, Deserialize, Serialize)]
+#[derive(defmt::Format, Debug, Clone, Deserialize, Serialize)]
 #[non_exhaustive]
 pub struct NodeConfig {
     pub node_id: NodeId,
@@ -30,7 +30,7 @@ impl NodeConfig {
 }
 
 /// Supported telemetry options
-#[derive(defmt::Format, Debug, Deserialize, Serialize)]
+#[derive(defmt::Format, Debug, Deserialize, Serialize, Clone)]
 #[non_exhaustive]
 pub struct TelemetryCapabilities {
     pub temperature: bool,
@@ -48,7 +48,7 @@ impl TelemetryCapabilities {
 }
 
 /// Supported water tank telemetry capabilities
-#[derive(defmt::Format, Debug, Deserialize, Serialize)]
+#[derive(defmt::Format, Debug, Deserialize, Serialize, Clone)]
 pub enum WaterTankDetection {
     None, // no water tank telemetry
     EmptyDetection, // can detect whether the tank is empty or not

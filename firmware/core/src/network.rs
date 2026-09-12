@@ -24,6 +24,7 @@ use shared::mqtt_convention;
 use shared::packets::{Packet, PacketPayload};
 
 use crate::settings;
+use crate::NODE_CONFIG;
 
 /// Enum with all possible network statuses
 #[derive(Clone, PartialEq)]
@@ -100,6 +101,11 @@ pub async fn create_packet(payload: PacketPayload) -> Packet {
 /// The MQTT task
 pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     let tx = NETWORK_STATUS.sender();
+
+    // Push node boot packet with config
+    let config = NODE_CONFIG.get().await;
+    let boot_packet = create_packet(PacketPayload::NodeBoot(config.clone())).await;
+    PACKET_CHANNEL.send(PriorityPacketWrapper(boot_packet)).await;
 
     // Allocate minimq 0.13.0 buffers directly on the task stack
     let mut rx_buf = [0u8; 256];

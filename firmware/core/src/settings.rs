@@ -25,7 +25,7 @@ use shared::node_settings::NodeSettings;
 pub static DYNAMIC_SETTINGS: Watch<CriticalSectionRawMutex, NodeSettings, 5> = Watch::new();
 
 /// Signal used for providing the new settings
-pub static OVERWRITE_SIG: Signal<CriticalSectionRawMutex, NodeSettings> = Signal::new();
+pub static OVERRIDE_SIG: Signal<CriticalSectionRawMutex, NodeSettings> = Signal::new();
 
 /// Task that is responsible for updating settings
 #[embassy_executor::task]
@@ -35,7 +35,7 @@ pub async fn settings_monitor() {
     tx.send(NodeSettings::default());
     
     loop {
-        let new = OVERWRITE_SIG.wait().await;
+        let new = OVERRIDE_SIG.wait().await;
         tx.send(new);
     }
 }
