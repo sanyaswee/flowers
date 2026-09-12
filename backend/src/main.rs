@@ -1,47 +1,60 @@
 //! The main backend server
 
-use rumqttc::{Client, Event, MqttOptions, Packet as MqttPacket, QoS};
+use std::sync::Arc;
 use std::time::Duration;
 
-use shared::packets::Packet as NodePacket;
+use rumqttc::{AsyncClient, Event, EventLoop, MqttOptions, Packet as MqttPacket, QoS};
 
-fn main() {
-    // Connect to local broker
-    println!("Packet size: {} bytes", size_of::<NodePacket>());
-    let mut mqtt_options = MqttOptions::new("flowers-host", "127.0.0.1", 1883);
+use shared::mqtt_convention;
+
+mod router;
+
+#[tokio::main]
+async fn main() {
+    let mut mqtt_options = MqttOptions::new("flowers-backend", "127.0.0.1", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(60));
 
-    // Initialize the MQTT client with a channel capacity of 100
-    let (mut client, mut connection) = Client::new(mqtt_options, 100);
+    // AsyncClient/EventLoop is the non-blocking counterpart of Client/Connection.
+    let (client, event_loop) = AsyncClient::new(mqtt_options, 100);
+    let client = Arc::new(client);
 
-    // Subscribe to all node telemetry topics
-    client
-        .subscribe("node/+/telemetry", QoS::AtMostOnce)
-        .expect("Failed to subscribe to topic");
+    let routes = Arc::new(router::routes());
 
-    println!("Listening for MQTT messages on 127.0.0.1:1883...");
+    for (filter, _) in routes.iter() {
+        client
+            .subscribe(filter, QoS::AtMostOnce)
+            .await
+            .expect("Failed to subscribe to topic");
+        println!("Subscribed to {filter}");
+    }
+    println!("Listening for MQTT messages on 127.0.0.1:1883");
 
-    // connection.iter() loop automatically handles reconnection and polling
-    for notification in connection.iter() {
-        match notification {
+    poll_loop(event_loop, routes, client).await;
+}
+
+/// Drives the MQTT event loop. Each incoming publish is dispatched on its own
+/// task so a slow/blocking handler for one message never delays the next one.
+async fn poll_loop(
+    mut event_loop: EventLoop,
+    routes: Arc<Vec<(String, router::Handler)>>,
+    client: Arc<AsyncClient>,
+) {
+    loop {
+        match event_loop.poll().await {
             Ok(Event::Incoming(MqttPacket::Publish(publish))) => {
-                // Pass the raw byte payload into existing deserialization logic
-                match NodePacket::deserialize(&publish.payload) {
-                    Ok(packet) => {
-                        println!("Received from {}:\n{packet:#?}", publish.topic);
-                    }
-                    Err(err) => {
-                        eprintln!("Failed to deserialize packet from {}: {err:?}", publish.topic);
-                    }
-                }
+                let routes = routes.clone();
+                let client = client.clone();
+                tokio::spawn(async move {
+                    router::dispatch(&routes, &publish.topic, &publish.payload, &client).await;
+                });
             }
             Ok(_) => {
                 // Ignore PINGRESP, SUBACK, and other protocol control packets
             }
             Err(e) => {
                 eprintln!("Broker connection error: {e:?}");
-                // rumqttc automatically attempts to reconnect in the background
-                std::thread::sleep(Duration::from_secs(2));
+                // Give the broker a moment before rumqttc's internal reconnect retries.
+                tokio::time::sleep(Duration::from_secs(2)).await;
             }
         }
     }

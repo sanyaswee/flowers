@@ -8,7 +8,7 @@ edition.workspace = true
 shared = { path = "../shared" }
 
 # Async runtime
-tokio = "1.53.1"
+tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
 
 # MQTT protocol
 rumqttc = "0.25.1"
