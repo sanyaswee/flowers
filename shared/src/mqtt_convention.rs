@@ -1,4 +1,6 @@
 //! MQTT communication topics
+//!
+//! We don't use `String` here because this crate is used by `no_std` firmware
 
 use core::fmt::Write;
 

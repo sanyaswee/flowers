@@ -8,7 +8,7 @@ use shared::packets::Packet as NodePacket;
 fn main() {
     // Connect to local broker
     println!("Packet size: {} bytes", size_of::<NodePacket>());
-    let mut mqtt_options = MqttOptions::new("backend-subscriber", "127.0.0.1", 1883);
+    let mut mqtt_options = MqttOptions::new("flowers-host", "127.0.0.1", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(60));
 
     // Initialize the MQTT client with a channel capacity of 100
