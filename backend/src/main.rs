@@ -5,16 +5,13 @@ use std::time::Duration;
 
 use rumqttc::{AsyncClient, Event, EventLoop, MqttOptions, Packet as MqttPacket, QoS};
 
-use shared::mqtt_convention;
-
 mod router;
 
 #[tokio::main]
 async fn main() {
     let mut mqtt_options = MqttOptions::new("flowers-backend", "127.0.0.1", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(60));
-
-    // AsyncClient/EventLoop is the non-blocking counterpart of Client/Connection.
+    
     let (client, event_loop) = AsyncClient::new(mqtt_options, 100);
     let client = Arc::new(client);
 
@@ -32,8 +29,7 @@ async fn main() {
     poll_loop(event_loop, routes, client).await;
 }
 
-/// Drives the MQTT event loop. Each incoming publish is dispatched on its own
-/// task so a slow/blocking handler for one message never delays the next one.
+/// MQTT event loop. Each incoming publish is dispatched on its own task
 async fn poll_loop(
     mut event_loop: EventLoop,
     routes: Arc<Vec<(String, router::Handler)>>,
@@ -49,11 +45,11 @@ async fn poll_loop(
                 });
             }
             Ok(_) => {
-                // Ignore PINGRESP, SUBACK, and other protocol control packets
+                // Ignore protocol control packets
             }
             Err(e) => {
                 eprintln!("Broker connection error: {e:?}");
-                // Give the broker a moment before rumqttc's internal reconnect retries.
+                // Give the broker a moment before rumqttc tries to reconnect
                 tokio::time::sleep(Duration::from_secs(2)).await;
             }
         }

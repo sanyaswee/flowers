@@ -70,13 +70,19 @@ fn topic_matches(filter: &str, topic: &str) -> bool {
     filter_levels.len() == topic_levels.len()
 }
 
+/// Telemetry handler
 async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>) {
     match NodePacket::deserialize(&payload) {
-        Ok(packet) => println!("Received from {topic}:\n{packet:#?}"),
+        Ok(packet) => println!("Telemetry from {topic}:\n{packet:#?}"),
         Err(err) => eprintln!("Failed to deserialize packet from {topic}: {err:?}"),
     }
 }
 
+/// Node boot handler
 async fn handle_boot(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>) {
-    println!("Node boot notification on {topic} ({} bytes)", payload.len());
+    // TODO publish back settings packet
+    match NodePacket::deserialize(&payload) {
+        Ok(packet) => println!("Node boot notification: {topic}:\n{packet:#?}"),
+        Err(err) => eprintln!("Failed to deserialize packet from {topic}: {err:?}"),
+    }
 }
