@@ -1,5 +1,7 @@
 //! This module contains hardware-generic network traits and tasks
 
+mod router;
+
 use core::cmp::Ordering;
 
 use defmt::{error, info};
@@ -167,7 +169,11 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                 // Connection or protocol error, drop and reconnect
                 Either::First(Err(_)) => break,
                 // Idle poll success
-                Either::First(Ok(_)) => continue,
+                Either::First(Ok(None)) => continue,
+                // Incoming packet
+                Either::First(Ok(Some(inbound))) => {
+                    router::dispatch(inbound.topic(), inbound.payload()).await;
+                }
                 // New packet queued
                 Either::Second(packet) => {
                     let packet = packet.0;
