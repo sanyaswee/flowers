@@ -1,63 +1,32 @@
-//! This module contains hardware-generic network traits and tasks
+//! This module handles network operations
 
 mod router;
 pub mod status;
 pub(crate) mod priority;
+pub mod provider;
+pub(crate) mod channel;
 
 use defmt::{error, info};
 
 use embassy_futures::select::{select, Either};
-
-use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy_sync::priority_channel::{PriorityChannel, Max};
-
-use embassy_time::{Instant, Timer};
-
-use embedded_io_async::{Read, Write};
+use embassy_time::{Timer};
 
 use heapless::String;
 
-use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication, TopicFilter};
+use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication};
 
 use shared::mqtt_convention;
 use shared::packets::{Packet, PacketPayload};
 
-use crate::settings;
-use crate::NODE_CONFIG;
-
+use provider::TcpProvider;
 use status::{NetworkStatus, NETWORK_STATUS};
-use priority::PriorityPacketWrapper;
-
-/// The channel for receiving the telemetry from telemetry_broker
-pub static PACKET_CHANNEL: PriorityChannel<ThreadModeRawMutex, PriorityPacketWrapper, Max, { settings::TELEMETRY_CHANNEL_SIZE  }> = PriorityChannel::new();
-
-/// Should be implemented in the node specific crate
-pub trait TcpProvider {
-    type Stream: Read + Write;
-    type Error: defmt::Format;
-
-    /// Establish a raw TCP connection to the broker
-    async fn connect(&mut self) -> Result<Self::Stream, Self::Error>;
-}
-
-/// Function to create a packet from generic payload
-pub async fn create_packet(payload: PacketPayload) -> Packet {
-    let uptime = Instant::now().as_millis();
-
-    Packet::new(uptime, payload)
-}
-
-/// Push a node boot packet with config into packet channel
-pub async fn push_boot() {
-    let config = NODE_CONFIG.get().await;
-    let boot_packet = create_packet(PacketPayload::NodeBoot(config.clone())).await;
-    PACKET_CHANNEL.send(PriorityPacketWrapper(boot_packet)).await;
-}
+use channel::{PACKET_CHANNEL, push_boot};
 
 /// The MQTT task
-pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
+pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     let tx = NETWORK_STATUS.sender();
 
+    // Node has just booted
     push_boot().await;
 
     // Allocate buffers

@@ -24,7 +24,7 @@ use embassy_time::{Duration, Timer};
 
 use static_cell::StaticCell;
 
-use core_logic::network::TcpProvider;
+use core_logic::network::provider::TcpProvider;
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => PioInterruptHandler<PIO0>;

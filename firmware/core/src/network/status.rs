@@ -1,4 +1,4 @@
-//! Task that tracks the network status and updates an LED
+//! Module responsible for network status tracking
 
 use embassy_futures::select::{select, Either};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -26,7 +26,7 @@ pub enum NetworkStatus {
 /// Global-accessible network status
 pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Watch::new();
 
-/// Function to track network status
+/// Function to track network status and update an LED accordingly
 /// Should be called before Wi-Fi initialization
 pub async fn track<P: OutputPin>(mut led: P) {
     let tx = NETWORK_STATUS.sender();

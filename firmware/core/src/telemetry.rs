@@ -10,7 +10,7 @@ use defmt::info;
 
 use shared::packets::PacketPayload;
 
-use crate::network::{create_packet, PACKET_CHANNEL};
+use crate::network::channel::{create_packet, PACKET_CHANNEL};
 use crate::network::priority::PriorityPacketWrapper;
 use crate::settings::DYNAMIC_SETTINGS;
 

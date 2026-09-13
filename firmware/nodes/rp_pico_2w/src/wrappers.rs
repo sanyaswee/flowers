@@ -48,7 +48,7 @@ pub async fn track_network(led: Output<'static>) {
 /// Task wrapper for the consolidated MQTT network manager
 #[embassy_executor::task]
 pub async fn mqtt_network(transport: WifiTransport, client_id: &'static str) {
-    network::mqtt_network_task(transport, client_id).await;
+    network::mqtt_task(transport, client_id).await;
 }
 
 // Task wrapper for the water level reader
