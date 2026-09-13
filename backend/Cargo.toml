@@ -10,5 +10,8 @@ shared = { path = "../shared" }
 # Async runtime
 tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
 
+# Database
+sqlx = { version = "0.9.0", features = ["sqlite", "runtime-tokio", "chrono", "migrate"] }
+
 # MQTT protocol
 rumqttc = "0.25.1"

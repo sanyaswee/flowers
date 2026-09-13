@@ -9,9 +9,14 @@ use shared::mqtt_convention;
 use shared::packets::{Packet as FirmwarePacket, PacketPayload};
 
 mod router;
+mod db;
 
 #[tokio::main]
 async fn main() {
+    let pool = db::init("flowers.db")
+        .await
+        .expect("Failed to initialize database");
+    
     let mut mqtt_options = MqttOptions::new("flowers-backend", "127.0.0.1", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(60));
     
