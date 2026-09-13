@@ -1,20 +1,17 @@
 //! This module contains hardware-generic network traits and tasks
 
 mod router;
-
-use core::cmp::Ordering;
+pub mod status;
+pub(crate) mod priority;
 
 use defmt::{error, info};
 
 use embassy_futures::select::{select, Either};
 
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, ThreadModeRawMutex};
+use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_sync::priority_channel::{PriorityChannel, Max};
-use embassy_sync::watch::Watch;
 
 use embassy_time::{Instant, Timer};
-
-use embedded_hal::digital::OutputPin;
 
 use embedded_io_async::{Read, Write};
 
@@ -28,57 +25,8 @@ use shared::packets::{Packet, PacketPayload};
 use crate::settings;
 use crate::NODE_CONFIG;
 
-/// Enum with all possible network statuses
-#[derive(Clone, PartialEq)]
-pub enum NetworkStatus {
-    /// Completely disconnected from Wi-Fi (default state on boot)
-    /// Indicated by the blinking LED
-    Disconnected,
-
-    /// Connected to the network, but could not locate the backend host
-    /// Indicated by the shining LED
-    HostNotFound,
-
-    /// Successfully connected to host
-    /// Indicated by turned off LED
-    Connected
-}
-
-/// Global-accessible network status
-pub static NETWORK_STATUS: Watch<CriticalSectionRawMutex, NetworkStatus, 3> = Watch::new();
-
-/// The wrapper struct for the packet so it can be sorted based on priority
-pub struct PriorityPacketWrapper(pub Packet);
-
-impl PriorityPacketWrapper {
-    fn priority(&self) -> u8 {
-        match &self.0.payload {
-            PacketPayload::NodeBoot(_) => 2,
-            PacketPayload::Telemetry(_) => 1,
-            _ => 0,
-        }
-    }
-}
-
-impl PartialEq for PriorityPacketWrapper {
-    fn eq(&self, other: &Self) -> bool {
-        self.priority() == other.priority()
-    }
-}
-
-impl Eq for PriorityPacketWrapper {}
-
-impl PartialOrd for PriorityPacketWrapper {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for PriorityPacketWrapper {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.priority().cmp(&other.priority())
-    }
-}
+use status::{NetworkStatus, NETWORK_STATUS};
+use priority::PriorityPacketWrapper;
 
 /// The channel for receiving the telemetry from telemetry_broker
 pub static PACKET_CHANNEL: PriorityChannel<ThreadModeRawMutex, PriorityPacketWrapper, Max, { settings::TELEMETRY_CHANNEL_SIZE  }> = PriorityChannel::new();
@@ -154,7 +102,7 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
             }),
             TopicFilter::new({
                 let mut t: String<64> = String::new();
-                let id = NODE_CONFIG.get().await.node_id;
+                let id = NODE_CONFIG.get().await.node_id.clone();
                 mqtt_convention::settings_override(&mut t, id.as_str());
                 t.as_str()
             })
@@ -211,49 +159,5 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                 }
             }
         }
-    }
-}
-
-/// Function to track network status
-/// Should be called before Wi-Fi initialization
-pub async fn track_status<P: OutputPin>(mut led: P) {
-    let tx = NETWORK_STATUS.sender();
-    let mut rx = NETWORK_STATUS.receiver().unwrap();
-
-    // Init default state
-    tx.send(NetworkStatus::Disconnected);
-    let mut state = rx.get().await;
-
-    loop {
-        match state {
-            NetworkStatus::Disconnected => {
-                // Blink LED
-                let blink_future = async {
-                    loop {
-                        led.set_low().unwrap();
-                        Timer::after_millis(500).await;
-                        led.set_high().unwrap();
-                        Timer::after_millis(500).await;
-                    }
-                };
-                match select(blink_future, rx.changed()).await {
-                    Either::First(_) => unreachable!(),
-                    Either::Second(new) => {
-                        state = new;
-                        continue;
-                    }
-                }
-            },
-            NetworkStatus::HostNotFound => {
-                // LED on
-                led.set_high().unwrap();
-            },
-            NetworkStatus::Connected => {
-                // LED off
-                led.set_low().unwrap();
-            }
-        }
-
-        state = rx.changed().await;
     }
 }

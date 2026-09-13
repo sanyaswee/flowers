@@ -42,7 +42,7 @@ pub async fn read_temp_pressure(bus: &'static SharedI2C<PicoI2c>) {
 /// Task wrapper for network tracker
 #[embassy_executor::task]
 pub async fn track_network(led: Output<'static>) {
-    network::track_status(led).await;
+    network::status::track(led).await;
 }
 
 /// Task wrapper for the consolidated MQTT network manager
