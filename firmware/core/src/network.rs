@@ -93,20 +93,10 @@ pub async fn mqtt_network_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
         tx.send(NetworkStatus::Connected);
 
         // Subscribe to topics
-        // Looks a bit overcomplicated, but I want to keep convention similar between sent and received topics
-        let topics = [
-            TopicFilter::new({
-                let mut t: String<64> = String::new();
-                mqtt_convention::server_boot(&mut t);
-                t.as_str()
-            }),
-            TopicFilter::new({
-                let mut t: String<64> = String::new();
-                let id = NODE_CONFIG.get().await.node_id.clone();
-                mqtt_convention::settings_override(&mut t, id.as_str());
-                t.as_str()
-            })
-        ];
+        // Overcomplicated due to Rust lifetimes constraints
+        // bufs contains strings, router::topics() writes actual topics to the strings
+        let mut bufs = [const { String::new() }; router::TOPICS_NUM];
+        let topics = router::topics(&mut bufs).await;
         if conn.subscribe(&topics, &[]).await.is_err() {
             continue; // reconnect
         }

@@ -2,11 +2,37 @@
 
 use defmt::{error, info};
 
+use heapless::String;
+
+use minimq::TopicFilter;
+
+use shared::mqtt_convention;
 use shared::node_settings::NodeSettings;
 use shared::packets::{Packet, PacketPayload};
 
+use crate::NODE_CONFIG;
 use crate::settings::OVERRIDE_SIG;
 
+/// Number of topics we are subscribed to
+pub(crate) const TOPICS_NUM: usize = 2;
+
+/// Return topics array to subscribe to
+/// Looks a bit overcomplicated because I gave up fighting with Rust lifetimes
+pub async fn topics<'a>(bufs: &'a mut [String<64>; TOPICS_NUM]) -> [TopicFilter<'a>; TOPICS_NUM] {
+    for buf in bufs.iter_mut() {
+        buf.clear();
+    }
+
+    mqtt_convention::server_boot(&mut bufs[0]);
+    mqtt_convention::settings_override(&mut bufs[1], NODE_CONFIG.get().await.node_id.as_str());
+
+    let topics = [
+        TopicFilter::new(bufs[0].as_str()),
+        TopicFilter::new(bufs[1].as_str())
+    ];
+
+    topics
+}
 
 /// Match an incoming topic to its handler
 pub async fn dispatch(topic: &str, payload: &[u8]) {
