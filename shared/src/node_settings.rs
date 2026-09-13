@@ -51,6 +51,7 @@ impl Default for MeasurementFrequencies {
 
 /// Settings per each channel
 #[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct PlantSettings {
     /// Channel is enabled
     pub enabled: bool,
