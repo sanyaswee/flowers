@@ -5,6 +5,9 @@ use std::time::Duration;
 
 use rumqttc::{AsyncClient, Event, EventLoop, MqttOptions, Packet as MqttPacket, QoS};
 
+use shared::mqtt_convention;
+use shared::packets::{Packet as FirmwarePacket, PacketPayload};
+
 mod router;
 
 #[tokio::main]
@@ -24,6 +27,25 @@ async fn main() {
             .expect("Failed to subscribe to topic");
         println!("Subscribed to {filter}");
     }
+
+    // Publish ServerBoot packet
+    let mut topic = String::new();
+    mqtt_convention::server_boot(&mut topic);
+    let packet = FirmwarePacket::new(0, PacketPayload::ServerBoot);
+    let payload = &mut [0u8; 512];
+    let res = packet.serialize(payload);
+    match res {
+        Ok(len) => {
+            match client.publish(topic, QoS::AtMostOnce, false, &payload[..len]).await {
+                Ok(_) => println!("ServerBoot packet published"),
+                Err(e) => panic!("Failed to publish ServerBoot packet: {:?}", e)
+            }
+        }
+        Err(e) => {
+            panic!("Failed to serialize ServerBoot packet: {:?}", e);
+        }
+    }
+
     println!("Listening for MQTT messages on 127.0.0.1:1883");
 
     poll_loop(event_loop, routes, client).await;
