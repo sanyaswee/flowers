@@ -1,5 +1,8 @@
 //! Structs corresponding to DB tables
 
+use chrono::NaiveDateTime;
+use sqlx::types::chrono;
+
 use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities};
 use shared::node_settings::{PlantSettings, NodeSettings};
 
@@ -18,9 +21,8 @@ pub struct NodeEntry {
     pub telemetry_report_freq: u16,
     pub light_m_freq: u16,
     pub bmpe_m_freq: u16,
-    // TODO
-    // pub last_boot: ,
-    // pub last_active: ,
+    pub last_boot: NaiveDateTime,
+    pub last_active: NaiveDateTime,
 }
 
 impl NodeEntry {
@@ -82,4 +84,28 @@ impl Into<PlantSettings> for ChannelEntry {
     fn into(self) -> PlantSettings {
         self.get_settings()
     }
+}
+
+/// `node_telemetry` table
+pub struct NodeTelemetryEntry {
+    pub id: u64,
+    pub node_id: u64,
+    pub timestamp: NaiveDateTime,
+    pub uptime: u64,
+    pub water_tank_has_water: Option<bool>,
+    pub water_tank_level: Option<f32>,
+    pub temperature: Option<f32>,
+    pub pressure: Option<f32>,
+    pub humidity: Option<f32>,
+    pub light_intensity: Option<f32>,
+}
+
+/// `channel_telemetry` table
+pub struct ChannelTelemetryEntry {
+    pub id: u64,
+    pub node_id: String,
+    pub channel_id: u8,
+    pub timestamp: NaiveDateTime,
+    pub uptime: u64,
+    pub soil_moisture: f32,
 }

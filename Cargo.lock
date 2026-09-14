@@ -107,6 +107,7 @@ checksum = "be5eb007b7cacc6c660343e96f650fedf4b5a77512399eb952ca6642cf8d13f7"
 name = "backend"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rumqttc",
  "shared",
  "sqlx",
@@ -267,8 +268,10 @@ checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
 dependencies = [
  "defmt 1.1.1",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "pure-rust-locales",
+ "wasm-bindgen",
  "windows-link",
 ]
 
