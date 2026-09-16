@@ -122,8 +122,10 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
                     };
                 }
                 Ok(None) => {
-                    // TODO push new entry
-                    todo!()
+                    let res = NodeEntry::push_default(&pool, node_id, packet.header.uptime_ms, config).await;
+                    if res.is_err() {
+                        eprintln!("DB Error: {}", res.err().unwrap())
+                    }
                 }
                 Err(e) => {
                     eprintln!("DB error: {e}");

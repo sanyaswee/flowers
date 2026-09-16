@@ -1,6 +1,9 @@
 //! Structs corresponding to DB tables
 
-use chrono::NaiveDateTime;
+use std::time::Duration;
+
+use chrono::{NaiveDateTime, Utc};
+
 use sqlx::SqlitePool;
 use sqlx::types::chrono;
 
@@ -55,6 +58,85 @@ impl NodeEntry {
         )
             .fetch_optional(pool)
             .await
+    }
+
+    /// Push new entry into database
+    pub async fn push(
+        pool: &SqlitePool,
+        node_id: &str,
+        uptime: u64,
+        config: NodeConfig,
+        settings: NodeSettings,
+    ) -> Result<Self, sqlx::Error> {
+        let water_tank = !matches!(config.water_tank_detection, WaterTankDetection::None);
+        let water_tank_level = matches!(config.water_tank_detection, WaterTankDetection::LevelDetection);
+
+        let now = Utc::now().naive_utc();
+        let last_boot = now - Duration::from_millis(uptime);
+        let last_active = now;
+
+        let n_channels = config.n_plant_channels as i64;
+        let telemetry_report_freq = settings.telemetry_packet_creation_freq_s as i64;
+        let light_m_freq = settings.m_freq.light_intensity_s as i64;
+        let bmpe_m_freq = settings.m_freq.bmpe_s as i64;
+
+        sqlx::query_as!(
+            NodeEntry,
+            r#"
+            INSERT INTO nodes
+                (
+                   node_id,
+                   n_channels,
+                   water_tank,
+                   water_tank_level,
+                   temperature,
+                   humidity,
+                   pressure,
+                   light,
+                   telemetry_report_freq,
+                   light_m_freq,
+                   bmpe_m_freq,
+                   last_boot,
+                   last_active
+                )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING
+                id as "id!: i64",
+                node_id as "node_id!: String",
+                verbose_name as "verbose_name: String",
+                n_channels as "n_channels!: u8",
+                water_tank as "water_tank!: bool",
+                water_tank_level as "water_tank_level!: bool",
+                temperature as "temperature!: bool",
+                humidity as "humidity!: bool",
+                pressure as "pressure!: bool",
+                light as "light!: bool",
+                telemetry_report_freq as "telemetry_report_freq!: u16",
+                light_m_freq as "light_m_freq!: u16",
+                bmpe_m_freq as "bmpe_m_freq!: u16",
+                last_boot as "last_boot: NaiveDateTime",
+                last_active as "last_active: NaiveDateTime"
+            "#,
+            node_id,
+            n_channels,
+            water_tank,
+            water_tank_level,
+            config.telemetry.temperature,
+            config.telemetry.humidity,
+            config.telemetry.pressure,
+            config.telemetry.light,
+            telemetry_report_freq,
+            light_m_freq,
+            bmpe_m_freq,
+            last_boot,
+            last_active,
+        )
+            .fetch_one(pool)
+            .await
+    }
+
+    pub async fn push_default(pool: &SqlitePool, node_id: &str, uptime: u64, config: NodeConfig) -> Result<Self, sqlx::Error> {
+        Self::push(pool, node_id, uptime, config, NodeSettings::default()).await
     }
 
     /// Convert into NodeConfig
@@ -166,6 +248,7 @@ impl ChannelEntry {
             .await
     }
 
+    /// Shortcut for default settings
     pub async fn push_default(pool: &SqlitePool, node_id: &str, idx: u8) -> Result<Self, sqlx::Error> {
         Self::push(pool, node_id, idx, PlantSettings::default()).await
     }
