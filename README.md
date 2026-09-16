@@ -8,10 +8,12 @@ In theory, the system doesn't care about the number of nodes, the limit comes fr
 Unless you grow ~~weed~~ something on an industrial scale, you will never hit it
 
 ## Current stage & Milestones
-For now, this project is in the MVP stage. The big milestones are:
+For now, this project is in the MVP stage. The major milestones are:
 1. Build a web frontend with UI for controlling the server and nodes
-2. Add another node type (probably ESP32)
-3. Fix all current issues
+2. Consider switching to binary transfers instead of JSON packets
+3. Migrate from SQLite to MySQL or PostgreSQL
+4. Add another node type (probably ESP32)
+5. Fix all current issues
 
 ## Requirements
 To function properly, this project needs a simple home server to be up and running and connected to the same network as the nodes. 
