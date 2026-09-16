@@ -5,7 +5,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use rumqttc::{AsyncClient, QoS};
-use sqlx::{Error, SqlitePool};
+use sqlx::SqlitePool;
 
 use shared::mqtt_convention;
 use shared::packets::{Packet as NodePacket, PacketPayload};

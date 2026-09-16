@@ -27,6 +27,7 @@ CREATE TABLE channels (
     id INTEGER PRIMARY KEY,
     node_id TEXT NOT NULL REFERENCES nodes (node_id),
     channel_id INTEGER NOT NULL,
+    verbose_name TEXT,
     enabled INTEGER NOT NULL,
     moisture_m_freq INTEGER NOT NULL
 );
