@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rumqttc::{AsyncClient, Event, EventLoop, MqttOptions, Packet as MqttPacket, QoS};
-
+use sqlx::SqlitePool;
 use shared::mqtt_convention;
 use shared::packets::{Packet as FirmwarePacket, PacketPayload};
 
@@ -16,10 +16,10 @@ async fn main() {
     let pool = db::init("flowers.db")
         .await
         .expect("Failed to initialize database");
-    
+
     let mut mqtt_options = MqttOptions::new("flowers-backend", "127.0.0.1", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(60));
-    
+
     let (client, event_loop) = AsyncClient::new(mqtt_options, 100);
     let client = Arc::new(client);
 
@@ -53,7 +53,7 @@ async fn main() {
 
     println!("Listening for MQTT messages on 127.0.0.1:1883");
 
-    poll_loop(event_loop, routes, client).await;
+    poll_loop(event_loop, routes, client, pool).await;
 }
 
 /// MQTT event loop. Each incoming publish is dispatched on its own task
@@ -61,14 +61,16 @@ async fn poll_loop(
     mut event_loop: EventLoop,
     routes: Arc<Vec<(String, router::Handler)>>,
     client: Arc<AsyncClient>,
+    pool: SqlitePool,
 ) {
     loop {
         match event_loop.poll().await {
             Ok(Event::Incoming(MqttPacket::Publish(publish))) => {
                 let routes = routes.clone();
                 let client = client.clone();
+                let pool = pool.clone(); // safe because SqlitePool is backed by Arc inside sqlx
                 tokio::spawn(async move {
-                    router::dispatch(&routes, &publish.topic, &publish.payload, &client).await;
+                    router::dispatch(&routes, &publish.topic, &publish.payload, &client, &pool).await;
                 });
             }
             Ok(_) => {

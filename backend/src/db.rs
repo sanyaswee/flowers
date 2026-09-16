@@ -1,6 +1,6 @@
 //! Database operations
 
-mod entries;
+pub mod entries;
 
 use std::str::FromStr;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};

@@ -4,13 +4,17 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use rumqttc::AsyncClient;
+use rumqttc::{AsyncClient, QoS};
+use sqlx::SqlitePool;
 
 use shared::mqtt_convention;
-use shared::packets::Packet as NodePacket;
+use shared::packets::{Packet as NodePacket, PacketPayload};
+
+use crate::db::entries::NodeEntry;
 
 type BoxFuture = Pin<Box<dyn Future<Output = ()> + Send>>;
-pub type Handler = Arc<dyn Fn(String, Vec<u8>, Arc<AsyncClient>) -> BoxFuture + Send + Sync>;
+
+pub type Handler = Arc<dyn Fn(String, Vec<u8>, Arc<AsyncClient>, SqlitePool) -> BoxFuture + Send + Sync>;
 
 /// All active subscriptions: (filter, handler) pairs
 pub fn routes() -> Vec<(String, Handler)> {
@@ -28,13 +32,13 @@ pub fn routes() -> Vec<(String, Handler)> {
     ]
 }
 
-/// Wraps a plain async fn into the boxed-future form the route table needs.
+/// Wraps a plain async fn into the boxed-future form the route table needs
 fn handler<F, Fut>(f: F) -> Handler
 where
-    F: Fn(String, Vec<u8>, Arc<AsyncClient>) -> Fut + Send + Sync + 'static,
+    F: Fn(String, Vec<u8>, Arc<AsyncClient>, SqlitePool) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    Arc::new(move |topic, payload, client| Box::pin(f(topic, payload, client)))
+    Arc::new(move |topic, payload, client, pool| Box::pin(f(topic, payload, client, pool)))
 }
 
 /// Find the first route whose filter matches `topic` and run its handler
@@ -43,10 +47,11 @@ pub async fn dispatch(
     topic: &str,
     payload: &[u8],
     client: &Arc<AsyncClient>,
+    pool: &SqlitePool,
 ) {
     for (filter, handle) in routes {
         if topic_matches(filter, topic) {
-            handle(topic.to_string(), payload.to_vec(), client.clone()).await;
+            handle(topic.to_string(), payload.to_vec(), client.clone(), pool.clone()).await;
             return;
         }
     }
@@ -71,7 +76,7 @@ fn topic_matches(filter: &str, topic: &str) -> bool {
 }
 
 /// Telemetry handler
-async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>) {
+async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>, _pool: SqlitePool) {
     match NodePacket::deserialize(&payload) {
         Ok(packet) => println!("Telemetry from {topic}:\n{packet:#?}"),
         Err(err) => eprintln!("Failed to deserialize packet from {topic}: {err:?}"),
@@ -79,10 +84,47 @@ async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncCli
 }
 
 /// Node boot handler
-async fn handle_boot(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>) {
-    // TODO publish back settings packet
+async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, pool: SqlitePool) {
     match NodePacket::deserialize(&payload) {
-        Ok(packet) => println!("Node boot notification: {topic}:\n{packet:#?}"),
+        Ok(packet) => {
+            println!("Node boot notification: {topic}:\n{packet:#?}");
+            let config = match packet.payload {
+                PacketPayload::NodeBoot(config) => config,
+                _ => {
+                    eprintln!("Invalid NodeBoot packet!");
+                    return;
+                }
+            };
+            let node_id = topic.split('/').nth(1).unwrap();
+            match NodeEntry::from_node_id(&pool, node_id.parse().unwrap()).await {
+                Ok(Some(entry)) => {
+                    if entry.get_config() != config {
+                        // TODO update config
+                    }
+
+                    let mut t = String::new();
+                    mqtt_convention::settings_override(&mut t, node_id);
+
+                    let p = NodePacket::new(0, PacketPayload::SettingsOverride(entry.get_settings()));
+                    let buf = &mut [0u8; 512];
+                    match p.serialize(buf) {
+                        Ok(len) => match client.publish(t, QoS::AtMostOnce, false, &buf[..len]).await {
+                            Ok(_) => println!("SettingsOverride packet published"),
+                            Err(e) => eprintln!("Failed to publish SettingsOverride packet: {:?}", e),
+                        },
+                        Err(e) => eprintln!("Failed to serialize SettingsOverride packet: {:?}", e),
+                    };
+                }
+                Ok(None) => {
+                    // TODO push new entry
+                    todo!()
+                }
+                Err(e) => {
+                    eprintln!("DB error: {e}");
+                    return;
+                }
+            };
+        }
         Err(err) => eprintln!("Failed to deserialize packet from {topic}: {err:?}"),
     }
 }

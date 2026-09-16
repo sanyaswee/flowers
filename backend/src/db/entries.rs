@@ -1,16 +1,17 @@
 //! Structs corresponding to DB tables
 
 use chrono::NaiveDateTime;
+use sqlx::SqlitePool;
 use sqlx::types::chrono;
 
-use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities};
+use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities, NodeId};
 use shared::node_settings::{PlantSettings, NodeSettings};
 
 /// `nodes` table
 pub struct NodeEntry {
-    pub id: u64,
+    pub id: i64,
     pub node_id: String,
-    pub verbose_name: String,
+    pub verbose_name: Option<String>,
     pub n_channels: u8,
     pub water_tank: bool,
     pub water_tank_level: bool,
@@ -26,6 +27,36 @@ pub struct NodeEntry {
 }
 
 impl NodeEntry {
+    /// Get DB entry based on node id from packet
+    pub async fn from_node_id(pool: &SqlitePool, node_id: NodeId) -> Result<Option<Self>, sqlx::Error> {
+        let node_id = node_id.to_string();
+        sqlx::query_as!(
+            NodeEntry,
+            r#"
+            SELECT
+                id, node_id,
+                verbose_name as "verbose_name!: String",
+                n_channels as "n_channels: u8",
+                water_tank as "water_tank: bool",
+                water_tank_level as "water_tank_level: bool",
+                temperature as "temperature: bool",
+                humidity as "humidity: bool",
+                pressure as "pressure: bool",
+                light as "light: bool",
+                telemetry_report_freq as "telemetry_report_freq: u16",
+                light_m_freq as "light_m_freq: u16",
+                bmpe_m_freq as "bmpe_m_freq: u16",
+                last_boot as "last_boot: NaiveDateTime",
+                last_active as "last_active: NaiveDateTime"
+            FROM nodes
+            WHERE node_id = ?
+            "#,
+            node_id
+        )
+            .fetch_optional(pool)
+            .await
+    }
+
     /// Convert into NodeConfig
     pub fn get_config(&self) -> NodeConfig {
         let tank = if self.water_tank {
@@ -64,7 +95,7 @@ impl Into<NodeConfig> for NodeEntry {
 
 /// `channels` table
 pub struct ChannelEntry {
-    pub id: u64,
+    pub id: i64,
     pub node_id: String,
     pub channel_id: u8,
     pub enabled: bool,

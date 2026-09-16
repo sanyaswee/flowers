@@ -19,7 +19,7 @@ CREATE TABLE nodes (
     bmpe_m_freq INTEGER NOT NULL,
     -- Other data
     last_boot DATETIME NOT NULL,
-    last_active DATETIME NOT NULL,
+    last_active DATETIME NOT NULL
 );
 
 -- Channels (attached to node)
