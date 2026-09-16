@@ -1,0 +1,194 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO nodes\n                (\n                   node_id,\n                   n_channels,\n                   water_tank,\n                   water_tank_level,\n                   temperature,\n                   humidity,\n                   pressure,\n                   light,\n                   telemetry_report_freq,\n                   light_m_freq,\n                   bmpe_m_freq,\n                   last_boot,\n                   last_active\n                )\n            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            RETURNING\n                id as \"id!: i64\",\n                node_id as \"node_id!: String\",\n                verbose_name as \"verbose_name: String\",\n                n_channels as \"n_channels!: u8\",\n                water_tank as \"water_tank!: bool\",\n                water_tank_level as \"water_tank_level!: bool\",\n                temperature as \"temperature!: bool\",\n                humidity as \"humidity!: bool\",\n                pressure as \"pressure!: bool\",\n                light as \"light!: bool\",\n                telemetry_report_freq as \"telemetry_report_freq!: u16\",\n                light_m_freq as \"light_m_freq!: u16\",\n                bmpe_m_freq as \"bmpe_m_freq!: u16\",\n                last_boot as \"last_boot: NaiveDateTime\",\n                last_active as \"last_active: NaiveDateTime\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "node_id!: String",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "node_id"
+          }
+        }
+      },
+      {
+        "name": "verbose_name: String",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "verbose_name"
+          }
+        }
+      },
+      {
+        "name": "n_channels!: u8",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "n_channels"
+          }
+        }
+      },
+      {
+        "name": "water_tank!: bool",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "water_tank"
+          }
+        }
+      },
+      {
+        "name": "water_tank_level!: bool",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "water_tank_level"
+          }
+        }
+      },
+      {
+        "name": "temperature!: bool",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "temperature"
+          }
+        }
+      },
+      {
+        "name": "humidity!: bool",
+        "ordinal": 7,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "humidity"
+          }
+        }
+      },
+      {
+        "name": "pressure!: bool",
+        "ordinal": 8,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "pressure"
+          }
+        }
+      },
+      {
+        "name": "light!: bool",
+        "ordinal": 9,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "light"
+          }
+        }
+      },
+      {
+        "name": "telemetry_report_freq!: u16",
+        "ordinal": 10,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "telemetry_report_freq"
+          }
+        }
+      },
+      {
+        "name": "light_m_freq!: u16",
+        "ordinal": 11,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "light_m_freq"
+          }
+        }
+      },
+      {
+        "name": "bmpe_m_freq!: u16",
+        "ordinal": 12,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "bmpe_m_freq"
+          }
+        }
+      },
+      {
+        "name": "last_boot: NaiveDateTime",
+        "ordinal": 13,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "last_boot"
+          }
+        }
+      },
+      {
+        "name": "last_active: NaiveDateTime",
+        "ordinal": 14,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "nodes",
+            "name": "last_active"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 13
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "41b0265d7391ff3668f8d9723ef2e0f5a0125180272508129f2cdf2ea0bb00e7"
+}

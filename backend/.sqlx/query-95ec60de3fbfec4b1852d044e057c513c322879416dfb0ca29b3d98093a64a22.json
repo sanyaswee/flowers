@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO channels (node_id, channel_id, enabled, moisture_m_freq)\n            VALUES (?, ?, ?, ?)\n            RETURNING\n                id as \"id!: i64\",\n                node_id as \"node_id!: String\",\n                channel_id as \"channel_id!: u8\",\n                enabled as \"enabled!: bool\",\n                moisture_m_freq as \"moisture_m_freq!: u16\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "node_id!: String",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "node_id"
+          }
+        }
+      },
+      {
+        "name": "channel_id!: u8",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "name": "enabled!: bool",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "enabled"
+          }
+        }
+      },
+      {
+        "name": "moisture_m_freq!: u16",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "moisture_m_freq"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "95ec60de3fbfec4b1852d044e057c513c322879416dfb0ca29b3d98093a64a22"
+}
