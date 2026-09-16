@@ -104,8 +104,14 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
 
                     let mut t = String::new();
                     mqtt_convention::settings_override(&mut t, node_id);
-
-                    let p = NodePacket::new(0, PacketPayload::SettingsOverride(entry.get_settings()));
+                    
+                    let settings = entry.get_settings(&pool).await;
+                    if settings.is_err() {
+                        eprintln!("DB Error: {:?}", settings.err());
+                        return;
+                    }
+                    let settings = settings.unwrap();
+                    let p = NodePacket::new(0, PacketPayload::SettingsOverride(settings));
                     let buf = &mut [0u8; 512];
                     match p.serialize(buf) {
                         Ok(len) => match client.publish(t, QoS::AtMostOnce, false, &buf[..len]).await {

@@ -82,14 +82,27 @@ impl NodeEntry {
         )
     }
 
-    pub fn get_settings(&self) -> NodeSettings {
-        todo!()
-    }
-}
+    /// Get NodeSettings from entry
+    pub async fn get_settings(&self, pool: &SqlitePool) -> Result<NodeSettings, sqlx::Error> {
+        let mut settings = NodeSettings::default();
 
-impl Into<NodeConfig> for NodeEntry {
-    fn into(self) -> NodeConfig {
-        self.get_config()
+        settings.telemetry_packet_creation_freq_s = self.telemetry_report_freq;
+        settings.m_freq.bmpe_s = self.bmpe_m_freq;
+        settings.m_freq.light_intensity_s = self.light_m_freq;
+
+        for i in 0..self.n_channels {
+            let node_id = self.node_id.as_str();
+            match ChannelEntry::from_node(pool, node_id, i).await? {
+                Some(ch) => {
+                    settings.plant_settings[i as usize] = ch.get_settings();
+                },
+                None => {
+                    // TODO push new channel, default settings are fine because it is new
+                }
+            }
+        }
+
+        Ok(settings)
     }
 }
 
@@ -103,17 +116,36 @@ pub struct ChannelEntry {
 }
 
 impl ChannelEntry {
+    /// Get channel by node id and index
+    pub async fn from_node(pool: &SqlitePool, node_id: &str, idx: u8) -> Result<Option<Self>, sqlx::Error> {
+        let node_id = node_id.to_string();
+        let idx = idx as i64;
+
+        sqlx::query_as!(
+            ChannelEntry,
+            r#"
+            SELECT
+                id,
+                node_id,
+                channel_id as "channel_id: u8",
+                enabled as "enabled: bool",
+                moisture_m_freq as "moisture_m_freq: u16"
+            FROM channels
+            WHERE node_id = ? AND channel_id = ?
+            "#,
+            node_id,
+            idx
+        )
+            .fetch_optional(pool)
+            .await
+    }
+
+    /// Get channel settings
     pub fn get_settings(&self) -> PlantSettings {
         let mut s = PlantSettings::default();
         s.enabled = self.enabled;
         s.moisture_m_freq_s = self.moisture_m_freq;
         s
-    }
-}
-
-impl Into<PlantSettings> for ChannelEntry {
-    fn into(self) -> PlantSettings {
-        self.get_settings()
     }
 }
 
