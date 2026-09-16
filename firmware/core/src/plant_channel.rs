@@ -28,6 +28,13 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
 {
     let mut settings = DYNAMIC_SETTINGS.receiver().unwrap();
     loop {
+        let current_settings = settings.get().await;
+        if !current_settings.plant_settings[idx].enabled {
+            // Channel is disabled, sleep until settings are changed
+            settings.changed().await;
+            continue;
+        }
+
         moisture_power_pin.set_high().unwrap();
         Timer::after_secs(2).await;
 
@@ -58,7 +65,7 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
 
         moisture_power_pin.set_low().unwrap();
 
-        let wait = settings.get().await.plant_settings[idx].moisture_m_freq_s;
+        let wait = current_settings.plant_settings[idx].moisture_m_freq_s;
         Timer::after_secs(wait as u64).await;
     }
 }
