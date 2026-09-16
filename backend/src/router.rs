@@ -5,7 +5,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use rumqttc::{AsyncClient, QoS};
-use sqlx::SqlitePool;
+use sqlx::{Error, SqlitePool};
 
 use shared::mqtt_convention;
 use shared::packets::{Packet as NodePacket, PacketPayload};
@@ -119,15 +119,23 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
                     return;
                 }
             };
+            
             let node_id = topic.split('/').nth(1).unwrap();
+            
             match NodeEntry::from_node_id(&pool, node_id.parse().unwrap()).await {
-                Ok(Some(entry)) => {
+                // Node entry already exists
+                Ok(Some(mut entry)) => {
                     if entry.get_config() != config {
-                        // TODO update config
+                        match entry.update_config(&pool, config).await {
+                            Ok(_) => println!("Config updated for node {node_id}"),
+                            Err(_) => eprintln!("Failed to update config for node {node_id}"),
+                        }
                     }
 
                     override_settings(client, &pool, entry).await;
                 }
+                
+                // Node entry does not exist yet
                 Ok(None) => {
                     let res = NodeEntry::push_default(&pool, node_id, packet.header.uptime_ms, config).await;
                     if res.is_err() {
@@ -135,9 +143,12 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
                         return;
                     }
 
+                    // Force the initialization of channels
                     let entry = res.unwrap();
                     override_settings(client, &pool, entry).await;
                 }
+                
+                // faaah
                 Err(e) => {
                     eprintln!("DB error: {e}");
                     return;

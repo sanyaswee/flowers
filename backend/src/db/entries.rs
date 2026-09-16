@@ -186,6 +186,48 @@ impl NodeEntry {
 
         Ok(settings)
     }
+
+    /// Update config in the database
+    pub async fn update_config(&mut self, pool: &SqlitePool, config: NodeConfig) -> Result<(), sqlx::Error> {
+        let water_tank = !matches!(config.water_tank_detection, WaterTankDetection::None);
+        let water_tank_level = matches!(config.water_tank_detection, WaterTankDetection::LevelDetection);
+        let n_channels = config.n_plant_channels as i64;
+
+        sqlx::query!(
+            r#"
+            UPDATE nodes SET
+                n_channels = ?,
+                water_tank = ?,
+                water_tank_level = ?,
+                temperature = ?,
+                humidity = ?,
+                pressure = ?,
+                light = ?
+            WHERE node_id = ?
+            "#,
+            n_channels,
+            water_tank,
+            water_tank_level,
+            config.telemetry.temperature,
+            config.telemetry.humidity,
+            config.telemetry.pressure,
+            config.telemetry.light,
+            self.node_id,
+        )
+            .execute(pool)
+            .await?;
+
+        // Update self only if DB write was successful
+        self.n_channels = config.n_plant_channels;
+        self.water_tank = water_tank;
+        self.water_tank_level = water_tank_level;
+        self.temperature = config.telemetry.temperature;
+        self.humidity = config.telemetry.humidity;
+        self.pressure = config.telemetry.pressure;
+        self.light = config.telemetry.light;
+
+        Ok(())
+    }
 }
 
 /// `channels` table
