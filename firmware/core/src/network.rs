@@ -30,7 +30,7 @@ pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     push_boot().await;
 
     // Allocate buffers
-    let mut rx_buf = [0u8; 256];
+    let mut rx_buf = [0u8; 768];
     let mut tx_buf = [0u8; 768];
     let buffers = Buffers::new(&mut rx_buf, &mut tx_buf);
 

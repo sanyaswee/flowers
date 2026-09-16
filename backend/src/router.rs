@@ -91,8 +91,8 @@ async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: N
     let buf = &mut [0u8; 512];
 
     match p.serialize(buf) {
-        Ok(len) => match client.publish(t, QoS::AtMostOnce, false, &buf[..len]).await {
-            Ok(_) => println!("SettingsOverride packet published"),
+        Ok(len) => match client.publish(t.clone(), QoS::AtMostOnce, false, &buf[..len]).await {
+            Ok(_) => println!("SettingsOverride packet published ({})", t),
             Err(e) => eprintln!("Failed to publish SettingsOverride packet: {:?}", e),
         },
         Err(e) => eprintln!("Failed to serialize SettingsOverride packet: {:?}", e),
