@@ -97,7 +97,7 @@ impl NodeEntry {
                     settings.plant_settings[i as usize] = ch.get_settings();
                 },
                 None => {
-                    // TODO push new channel, default settings are fine because it is new
+                    ChannelEntry::push_default(pool, node_id, i).await?;
                 }
             }
         }
@@ -139,6 +139,38 @@ impl ChannelEntry {
             .fetch_optional(pool)
             .await
     }
+
+    /// Push new entry into the database
+    pub async fn push(pool: &SqlitePool, node_id: &str, idx: u8, settings: PlantSettings) -> Result<Self, sqlx::Error> {
+        let channel_id = idx as i64;
+        let moisture_m_freq = settings.moisture_m_freq_s as i64;
+
+        sqlx::query_as!(
+            ChannelEntry,
+            r#"
+            INSERT INTO channels (node_id, channel_id, enabled, moisture_m_freq)
+            VALUES (?, ?, ?, ?)
+            RETURNING
+                id as "id!: i64",
+                node_id as "node_id!: String",
+                channel_id as "channel_id!: u8",
+                enabled as "enabled!: bool",
+                moisture_m_freq as "moisture_m_freq!: u16"
+            "#,
+            node_id,
+            channel_id,
+            settings.enabled,
+            moisture_m_freq,
+        )
+            .fetch_one(pool)
+            .await
+    }
+
+    pub async fn push_default(pool: &SqlitePool, node_id: &str, idx: u8) -> Result<Self, sqlx::Error> {
+        Self::push(pool, node_id, idx, PlantSettings::default()).await
+    }
+
+
 
     /// Get channel settings
     pub fn get_settings(&self) -> PlantSettings {
