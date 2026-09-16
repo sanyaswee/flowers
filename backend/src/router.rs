@@ -75,6 +75,30 @@ fn topic_matches(filter: &str, topic: &str) -> bool {
     filter_levels.len() == topic_levels.len()
 }
 
+/// Helper function to override settings
+async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
+    let mut t = String::new();
+    mqtt_convention::settings_override(&mut t, &*entry.node_id);
+
+    let settings = entry.get_settings(&pool).await;
+    if settings.is_err() {
+        eprintln!("DB Error: {:?}", settings.err());
+        return;
+    }
+    let settings = settings.unwrap();
+
+    let p = NodePacket::new(0, PacketPayload::SettingsOverride(settings));
+    let buf = &mut [0u8; 512];
+
+    match p.serialize(buf) {
+        Ok(len) => match client.publish(t, QoS::AtMostOnce, false, &buf[..len]).await {
+            Ok(_) => println!("SettingsOverride packet published"),
+            Err(e) => eprintln!("Failed to publish SettingsOverride packet: {:?}", e),
+        },
+        Err(e) => eprintln!("Failed to serialize SettingsOverride packet: {:?}", e),
+    };
+}
+
 /// Telemetry handler
 async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>, _pool: SqlitePool) {
     match NodePacket::deserialize(&payload) {
@@ -102,30 +126,17 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
                         // TODO update config
                     }
 
-                    let mut t = String::new();
-                    mqtt_convention::settings_override(&mut t, node_id);
-                    
-                    let settings = entry.get_settings(&pool).await;
-                    if settings.is_err() {
-                        eprintln!("DB Error: {:?}", settings.err());
-                        return;
-                    }
-                    let settings = settings.unwrap();
-                    let p = NodePacket::new(0, PacketPayload::SettingsOverride(settings));
-                    let buf = &mut [0u8; 512];
-                    match p.serialize(buf) {
-                        Ok(len) => match client.publish(t, QoS::AtMostOnce, false, &buf[..len]).await {
-                            Ok(_) => println!("SettingsOverride packet published"),
-                            Err(e) => eprintln!("Failed to publish SettingsOverride packet: {:?}", e),
-                        },
-                        Err(e) => eprintln!("Failed to serialize SettingsOverride packet: {:?}", e),
-                    };
+                    override_settings(client, &pool, entry).await;
                 }
                 Ok(None) => {
                     let res = NodeEntry::push_default(&pool, node_id, packet.header.uptime_ms, config).await;
                     if res.is_err() {
-                        eprintln!("DB Error: {}", res.err().unwrap())
+                        eprintln!("DB Error: {}", res.err().unwrap());
+                        return;
                     }
+
+                    let entry = res.unwrap();
+                    override_settings(client, &pool, entry).await;
                 }
                 Err(e) => {
                     eprintln!("DB error: {e}");
