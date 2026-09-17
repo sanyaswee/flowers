@@ -1,11 +1,8 @@
 //! Structs corresponding to DB tables
 
-use std::time::Duration;
-
-use chrono::{NaiveDateTime, Utc};
+use chrono::{NaiveDateTime, Duration, Utc};
 
 use sqlx::SqlitePool;
-use sqlx::types::chrono;
 
 use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities};
 use shared::node_settings::{PlantSettings, NodeSettings};
@@ -73,7 +70,7 @@ impl NodeEntry {
         let water_tank_level = matches!(config.water_tank_detection, WaterTankDetection::LevelDetection);
 
         let now = Utc::now().naive_utc();
-        let last_boot = now - Duration::from_millis(uptime);
+        let last_boot = now - Duration::milliseconds(uptime as i64);
         let last_active = now;
 
         let n_channels = config.n_plant_channels as i64;
@@ -229,6 +226,43 @@ impl NodeEntry {
 
         Ok(())
     }
+
+    /// Update last boot
+    pub async fn update_boot(&mut self, pool: &SqlitePool, uptime: u64) -> Result<(), sqlx::Error> {
+        let last_boot = Utc::now().naive_utc() - Duration::milliseconds(uptime as i64);
+        sqlx::query!(
+            r#"
+            UPDATE nodes SET last_boot = ? WHERE node_id = ?
+            "#,
+            last_boot,
+            self.node_id
+        )
+            .execute(pool)
+            .await?;
+
+        self.last_boot = last_boot;
+
+        Ok(())
+    }
+
+    /// Update last activity field
+    pub async fn update_activity(&mut self, pool: &SqlitePool) -> Result<(), sqlx::Error> {
+        let now = Utc::now().naive_utc();
+        sqlx::query!(
+            r#"
+            UPDATE nodes SET last_active = ? WHERE node_id = ?
+            "#,
+            now,
+            self.node_id
+        )
+            .execute(pool)
+            .await?;
+
+        // Update locally only if DB operation succeeds
+        self.last_active = now;
+
+        Ok(())
+    }
 }
 
 /// `channels` table
@@ -331,9 +365,11 @@ impl NodeTelemetryEntry {
     ) -> Result<Self, sqlx::Error> {
         let node = NodeEntry::from_node_id(pool, node_id).await?;
         assert!(node.is_some());
-        let node = node.unwrap();
 
-        let timestamp = node.last_boot + Duration::from_millis(uptime as u64);
+        let mut node = node.unwrap();
+        node.update_activity(pool).await?;
+
+        let timestamp = node.last_boot + Duration::milliseconds(uptime);
         let this = sqlx::query_as!(
             NodeTelemetryEntry,
             r#"
@@ -368,9 +404,11 @@ impl NodeTelemetryEntry {
         // Push channel telemetry if needed
         for (i, plant) in telemetry.plant_telemetry.iter().enumerate() {
             if plant.is_some() {
+                // TODO this shi is not working
                 let plant = plant.unwrap();
                 let stamp = plant.measurement_stamp as i64;
                 if ChannelTelemetryEntry::is_new(pool, node_id, i as u8, stamp).await? {
+                    println!("Updating telemetry");
                     ChannelTelemetryEntry::push(pool, node_id, i as u8, stamp, plant.soil_moisture).await?;
                 }
             }
@@ -403,7 +441,7 @@ impl ChannelTelemetryEntry {
         assert!(node.is_some());
 
         let node = node.unwrap();
-        let timestamp = node.last_boot + Duration::from_millis(uptime_stamp as u64);
+        let timestamp = node.last_boot + Duration::milliseconds(uptime_stamp);
 
         sqlx::query_as!(
             ChannelTelemetryEntry,
@@ -439,7 +477,7 @@ impl ChannelTelemetryEntry {
         assert!(node.is_some());
 
         let node = node.unwrap();
-        let timestamp = node.last_boot + Duration::from_millis(uptime_stamp as u64);
+        let timestamp = node.last_boot + Duration::milliseconds(uptime_stamp);
 
         let row = sqlx::query!(
             r#"

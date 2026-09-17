@@ -137,6 +137,10 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
             match NodeEntry::from_node_id(&pool, node_id).await {
                 // Node entry already exists
                 Ok(Some(mut entry)) => {
+                    match entry.update_boot(&pool, packet.header.uptime_ms).await {
+                        Ok(_) => println!("Boot updated for node {node_id}"),
+                        Err(_) => println!("Failed to update boot for node {node_id}"),
+                    }
                     if entry.get_config() != config {
                         match entry.update_config(&pool, config).await {
                             Ok(_) => println!("Config updated for node {node_id}"),
