@@ -367,10 +367,11 @@ impl NodeTelemetryEntry {
 
         // Push channel telemetry if needed
         for (i, plant) in telemetry.plant_telemetry.iter().enumerate() {
-            if plant.measurement_stamp.is_some() {
-                let stamp = plant.measurement_stamp.unwrap() as i64;
+            if plant.is_some() {
+                let plant = plant.unwrap();
+                let stamp = plant.measurement_stamp as i64;
                 if ChannelTelemetryEntry::is_new(pool, node_id, i as u8, stamp).await? {
-                    ChannelTelemetryEntry::push(pool, node_id, i as u8, stamp, plant.soil_moisture.unwrap()).await?;
+                    ChannelTelemetryEntry::push(pool, node_id, i as u8, stamp, plant.soil_moisture).await?;
                 }
             }
         }

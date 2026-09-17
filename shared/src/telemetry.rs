@@ -19,7 +19,7 @@ pub struct NodeTelemetry {
     pub light_intensity: Option<f32>,
 
     /// Plant channel telemetry
-    pub plant_telemetry: [PlantTelemetry; MAX_PLANT_CHANNELS],
+    pub plant_telemetry: [Option<PlantTelemetry>; MAX_PLANT_CHANNELS],
 }
 
 impl NodeTelemetry {
@@ -31,7 +31,7 @@ impl NodeTelemetry {
             pressure: None,
             air_humidity: None,
             light_intensity: None,
-            plant_telemetry: [PlantTelemetry::new(); MAX_PLANT_CHANNELS],
+            plant_telemetry: [None; MAX_PLANT_CHANNELS],
         }
     }
 }
@@ -40,13 +40,13 @@ impl NodeTelemetry {
 #[derive(defmt::Format, Clone, Serialize, Deserialize, Debug, Copy)]
 pub struct PlantTelemetry {
     /// Timestamp of last measurement, needed to avoid bloating the db with it
-    pub measurement_stamp: Option<u64>,
+    pub measurement_stamp: u64,
     /// Actual measurement
-    pub soil_moisture: Option<f32>,
+    pub soil_moisture: f32,
 }
 
 impl PlantTelemetry {
-    pub const fn new() -> Self {
-        Self { measurement_stamp: None, soil_moisture: None }
+    pub const fn new(stamp: u64, moisture: f32) -> Self {
+        Self { measurement_stamp: stamp, soil_moisture: moisture }
     }
 }

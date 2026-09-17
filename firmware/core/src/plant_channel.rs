@@ -8,7 +8,7 @@ use embassy_sync::mutex::Mutex;
 use embassy_time::{Instant, Timer};
 
 use embedded_hal::digital::OutputPin;
-
+use shared::telemetry::PlantTelemetry;
 use crate::adc::AdcProvider;
 use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
@@ -54,10 +54,10 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
                 // calculate percentage
                 // for analog soil moisture sensors -> high = dry, low = wet
                 let percentage = 100.0 - ((val_f32 / max_f32) * 100.0);
+                let stamp = Instant::now().as_millis();
 
                 let mut t = TELEMETRY.lock().await;
-                t.plant_telemetry[idx].measurement_stamp = Some(Instant::now().as_millis());
-                t.plant_telemetry[idx].soil_moisture = Some(percentage);
+                t.plant_telemetry[idx] = Some(PlantTelemetry::new(stamp, percentage));
             },
             Err(e) => {
                 error!("Error reading soil moisture: {}", e)
