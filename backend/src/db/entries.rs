@@ -7,7 +7,7 @@ use chrono::{NaiveDateTime, Utc};
 use sqlx::SqlitePool;
 use sqlx::types::chrono;
 
-use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities, NodeId};
+use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities};
 use shared::node_settings::{PlantSettings, NodeSettings};
 use shared::telemetry::NodeTelemetry;
 

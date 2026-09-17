@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 use shared::mqtt_convention;
 use shared::packets::{Packet as NodePacket, PacketPayload};
 
-use crate::db::entries::NodeEntry;
+use crate::db::entries::{NodeEntry, NodeTelemetryEntry};
 
 type BoxFuture = Pin<Box<dyn Future<Output = ()> + Send>>;
 
@@ -100,9 +100,21 @@ async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: N
 }
 
 /// Telemetry handler
-async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>, _pool: SqlitePool) {
+async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>, pool: SqlitePool) {
+    let node_id = topic.split('/').nth(1).unwrap();
     match NodePacket::deserialize(&payload) {
-        Ok(packet) => println!("Telemetry from {topic}:\n{packet:#?}"),
+        Ok(packet) => {
+            println!("Telemetry from {topic}:\n{packet:#?}") ;
+            match packet.payload {
+                PacketPayload::Telemetry(telemetry) => {
+                    match NodeTelemetryEntry::push(&pool, node_id, packet.header.uptime_ms as i64, telemetry).await {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("Error pushing telemetry: {e}")
+                    };
+                }
+                _ => eprintln!("Invalid telemetry packet payload!")
+            }
+        },
         Err(err) => eprintln!("Failed to deserialize packet from {topic}: {err:?}"),
     }
 }
@@ -115,7 +127,7 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
             let config = match packet.payload {
                 PacketPayload::NodeBoot(config) => config,
                 _ => {
-                    eprintln!("Invalid NodeBoot packet!");
+                    eprintln!("Invalid NodeBoot packet payload!");
                     return;
                 }
             };
