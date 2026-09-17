@@ -122,7 +122,7 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
             
             let node_id = topic.split('/').nth(1).unwrap();
             
-            match NodeEntry::from_node_id(&pool, node_id.parse().unwrap()).await {
+            match NodeEntry::from_node_id(&pool, node_id).await {
                 // Node entry already exists
                 Ok(Some(mut entry)) => {
                     if entry.get_config() != config {
