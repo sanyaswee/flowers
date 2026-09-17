@@ -39,11 +39,14 @@ impl NodeTelemetry {
 /// Plant specific telemetry
 #[derive(defmt::Format, Clone, Serialize, Deserialize, Debug, Copy)]
 pub struct PlantTelemetry {
+    /// Timestamp of last measurement, needed to avoid bloating the db with it
+    pub measurement_stamp: Option<u64>,
+    /// Actual measurement
     pub soil_moisture: Option<f32>,
 }
 
 impl PlantTelemetry {
     pub const fn new() -> Self {
-        Self { soil_moisture: None }
+        Self { measurement_stamp: None, soil_moisture: None }
     }
 }

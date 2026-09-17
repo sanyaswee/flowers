@@ -9,6 +9,7 @@ use sqlx::types::chrono;
 
 use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities, NodeId};
 use shared::node_settings::{PlantSettings, NodeSettings};
+use shared::telemetry::NodeTelemetry;
 
 /// `nodes` table
 pub struct NodeEntry {
@@ -320,12 +321,83 @@ pub struct NodeTelemetryEntry {
     pub light_intensity: Option<f32>,
 }
 
+impl NodeTelemetryEntry {
+    /// Push new entry into the database
+    pub async fn push(pool: &SqlitePool, node_id: &str, uptime: u64, telemetry: NodeTelemetry) -> Result<Self, sqlx::Error> {
+        todo!()
+    }
+}
+
 /// `channel_telemetry` table
 pub struct ChannelTelemetryEntry {
-    pub id: u64,
+    pub id: i64,
     pub node_id: String,
     pub channel_id: u8,
     pub timestamp: NaiveDateTime,
-    pub uptime: u64,
+    pub uptime: i64,
     pub soil_moisture: f32,
+}
+
+impl ChannelTelemetryEntry {
+    /// Push new entry into the database
+    pub async fn push(
+        pool: &SqlitePool,
+        node_id: &str,
+        channel_id: u8,
+        node_boot: NaiveDateTime,
+        uptime_stamp: i64,
+        moisture: f32,
+    ) -> Result<Self, sqlx::Error> {
+        let timestamp = node_boot + Duration::from_millis(uptime_stamp as u64);
+
+        sqlx::query_as!(
+            ChannelTelemetryEntry,
+            r#"
+            INSERT INTO channel_telemetry (node_id, channel_id, timestamp, uptime, soil_moisture)
+            VALUES (?, ?, ?, ?, ?)
+            RETURNING
+                id as "id!: i64",
+                node_id as "node_id!: String",
+                channel_id as "channel_id!: u8",
+                timestamp as "timestamp!: NaiveDateTime",
+                uptime as "uptime!: i64",
+                soil_moisture as "soil_moisture!: f32"
+            "#,
+            node_id,
+            channel_id,
+            timestamp,
+            uptime_stamp,
+            moisture,
+        )
+            .fetch_one(pool)
+            .await
+    }
+
+    /// Check if telemetry is already written
+    pub async fn is_new(
+        pool: &SqlitePool,
+        node_id: &str,
+        channel_id: u8,
+        node_boot: NaiveDateTime,
+        uptime_stamp: i64,
+    ) -> Result<bool, sqlx::Error> {
+        let timestamp = node_boot + Duration::from_millis(uptime_stamp as u64);
+
+        let row = sqlx::query!(
+            r#"
+            SELECT * FROM channel_telemetry
+            WHERE node_id = ? AND channel_id = ? AND timestamp = ?
+            "#,
+            node_id,
+            channel_id,
+            timestamp,
+        )
+            .fetch_optional(pool)
+            .await?;
+
+        match row {
+            Some(_) => Ok(true),
+            None => Ok(false),
+        }
+    }
 }

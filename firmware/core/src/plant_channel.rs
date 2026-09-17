@@ -5,7 +5,7 @@ use defmt::error;
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
 
-use embassy_time::Timer;
+use embassy_time::{Instant, Timer};
 
 use embedded_hal::digital::OutputPin;
 
@@ -56,6 +56,7 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
                 let percentage = 100.0 - ((val_f32 / max_f32) * 100.0);
 
                 let mut t = TELEMETRY.lock().await;
+                t.plant_telemetry[idx].measurement_stamp = Some(Instant::now().as_millis());
                 t.plant_telemetry[idx].soil_moisture = Some(percentage);
             },
             Err(e) => {
