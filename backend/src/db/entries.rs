@@ -404,7 +404,6 @@ impl NodeTelemetryEntry {
         // Push channel telemetry if needed
         for (i, plant) in telemetry.plant_telemetry.iter().enumerate() {
             if plant.is_some() {
-                // TODO this shi is not working
                 let plant = plant.unwrap();
                 let stamp = plant.measurement_stamp as i64;
                 if ChannelTelemetryEntry::is_new(pool, node_id, i as u8, stamp).await? {
@@ -492,8 +491,8 @@ impl ChannelTelemetryEntry {
             .await?;
 
         match row {
-            Some(_) => Ok(true),
-            None => Ok(false),
+            Some(_) => Ok(false),
+            None => Ok(true),
         }
     }
 }
