@@ -3,20 +3,30 @@
 use axum::{Json, Router};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::get;
+use axum::routing::{get, post};
 
+use serde::Deserialize;
 use sqlx::SqlitePool;
 
 use crate::db::entries::{ChannelEntry, ChannelTelemetryEntry, NodeEntry, NodeTelemetryEntry};
 
+#[derive(Deserialize)]
+pub struct VerboseNamePayload {
+    pub verbose_name: String,
+}
+
 pub fn app(pool: SqlitePool) -> Router {
     Router::new()
+        // Getters
         .route("/api/nodes", get(get_all_nodes))
         .route("/api/nodes/{node_id}", get(get_node_by_id))
         .route("/api/channels", get(get_all_channels))
         .route("/api/nodes/{node_id}/channels/{channel_id}", get(get_channel_by_id))
         .route("/api/nodes/{node_id}/telemetry", get(get_node_telemetry))
         .route("/api/nodes/{node_id}/channels/{channel_id}/telemetry", get(get_channel_telemetry))
+        // Setters
+        .route("/api/nodes/:node_id/verbose", post(set_node_verbose_name))
+        .route("/api/nodes/:node_id/channels/:channel_id/verbose", post(set_channel_verbose_name))
         .with_state(pool)
 }
 
@@ -74,4 +84,38 @@ async fn get_channel_telemetry(
         .await
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn set_node_verbose_name(
+    State(pool): State<SqlitePool>,
+    Path(node_id): Path<String>,
+    Json(payload): Json<VerboseNamePayload>,
+) -> Result<StatusCode, StatusCode> {
+    let mut node = match NodeEntry::from_node_id(&pool, &node_id).await {
+        Ok(Some(node)) => node,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match node.set_verbose(&pool, payload.verbose_name).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+async fn set_channel_verbose_name(
+    State(pool): State<SqlitePool>,
+    Path((node_id, channel_id)): Path<(String, u8)>,
+    Json(payload): Json<VerboseNamePayload>,
+) -> Result<StatusCode, StatusCode> {
+    let mut channel = match ChannelEntry::from_node(&pool, &node_id, channel_id).await {
+        Ok(Some(channel)) => channel,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match channel.set_verbose(&pool, payload.verbose_name).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
 }
