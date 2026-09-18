@@ -301,6 +301,36 @@ impl NodeEntry {
 
         Ok(())
     }
+
+    /// Update node settings
+    pub async fn set_settings(&mut self, pool: &SqlitePool, settings: NodeSettings) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE nodes SET telemetry_report_freq = ?, light_m_freq = ?, bmpe_m_freq = ? WHERE node_id = ?
+            "#,
+            settings.telemetry_packet_creation_freq_s,
+            settings.m_freq.light_intensity_s,
+            settings.m_freq.bmpe_s,
+            self.node_id,
+        )
+            .execute(pool)
+            .await?;
+
+        // Update node settings
+        self.telemetry_report_freq = settings.telemetry_packet_creation_freq_s;
+        self.light_m_freq = settings.m_freq.light_intensity_s;
+        self.bmpe_m_freq = settings.m_freq.bmpe_s;
+
+        // Update its channel settings
+        for i in 0..self.n_channels {
+            let channel = ChannelEntry::from_node(pool, &self.node_id, i).await?;
+            if channel.is_some() {
+                channel.unwrap().set_settings(pool, settings.plant_settings[i as usize]).await?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// `channels` table
@@ -438,6 +468,32 @@ impl ChannelEntry {
             .await?;
 
         self.enabled = enable;
+
+        Ok(())
+    }
+
+    /// Set soil moisture measurement frequency
+    pub async fn set_moisture_m_freq(&mut self, pool: &SqlitePool, value: u16) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE channels SET moisture_m_freq = ? WHERE node_id = ? AND channel_id = ?
+            "#,
+            value,
+            self.node_id,
+            self.channel_id,
+        )
+            .execute(pool)
+            .await?;
+
+        self.moisture_m_freq = value;
+
+        Ok(())
+    }
+
+    /// Set settings (PlantSettings)
+    pub async fn set_settings(&mut self, pool: &SqlitePool, settings: PlantSettings) -> Result<(), sqlx::Error> {
+        self.set_enable(pool, settings.enabled).await?;
+        self.set_moisture_m_freq(pool, settings.moisture_m_freq_s).await?;
 
         Ok(())
     }

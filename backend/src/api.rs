@@ -8,7 +8,9 @@ use axum::routing::{get, post};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use crate::db::entries::{ChannelEntry, ChannelTelemetryEntry, NodeEntry, NodeTelemetryEntry};
+use shared::node_settings::{NodeSettings, PlantSettings};
+
+use crate::db::entries::*;
 
 #[derive(Deserialize)]
 pub struct VerboseNamePayload {
@@ -27,8 +29,11 @@ pub fn app(pool: SqlitePool) -> Router {
         // Setters
         .route("/api/nodes/{node_id}/verbose", post(set_node_verbose_name))
         .route("/api/nodes/{node_id}/channels/{channel_id}/verbose", post(set_channel_verbose_name))
+        // TODO publish SettingsOverride
         .route("/api/nodes/{node_id}/channels/{channel_id}/enable", post(enable_channel))
         .route("/api/nodes/{node_id}/channels/{channel_id}/disable", post(disable_channel))
+        .route("/api/nodes/{node_id}/settings", post(set_node_settings))
+        .route("/api/nodes/{node_id}/channels/{channel_id}/settings", post(set_channel_settings))
         .with_state(pool)
 }
 
@@ -149,6 +154,40 @@ async fn disable_channel(
     };
 
     match channel.disable(&pool).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+async fn set_node_settings(
+    State(pool): State<SqlitePool>,
+    Path(node_id): Path<String>,
+    Json(settings): Json<NodeSettings>,
+) -> Result<StatusCode, StatusCode> {
+    let mut node = match NodeEntry::from_node_id(&pool, &node_id).await {
+        Ok(Some(node)) => node, //
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match node.set_settings(&pool, settings).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+async fn set_channel_settings(
+    State(pool): State<SqlitePool>,
+    Path((node_id, channel_id)): Path<(String, u8)>,
+    Json(settings): Json<PlantSettings>,
+) -> Result<StatusCode, StatusCode> {
+    let mut channel = match ChannelEntry::from_node(&pool, &node_id, channel_id).await {
+        Ok(Some(channel)) => channel, //
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match channel.set_settings(&pool, settings).await {
         Ok(_) => Ok(StatusCode::OK),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
