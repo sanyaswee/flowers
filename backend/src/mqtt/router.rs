@@ -75,6 +75,26 @@ fn topic_matches(filter: &str, topic: &str) -> bool {
     filter_levels.len() == topic_levels.len()
 }
 
+/// Publish ServerBoot packet
+pub async fn publish_boot(client: &Arc<AsyncClient>) {
+    let mut topic = String::new();
+    mqtt_convention::server_boot(&mut topic);
+    let packet = NodePacket::new(0, PacketPayload::ServerBoot);
+    let payload = &mut [0u8; 512];
+    let res = packet.serialize(payload);
+    match res {
+        Ok(len) => {
+            match client.publish(topic, QoS::AtMostOnce, false, &payload[..len]).await {
+                Ok(_) => println!("ServerBoot packet published"),
+                Err(e) => panic!("Failed to publish ServerBoot packet: {:?}", e)
+            }
+        }
+        Err(e) => {
+            panic!("Failed to serialize ServerBoot packet: {:?}", e);
+        }
+    }
+}
+
 /// Helper function to override settings
 async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
     let mut t = String::new();
