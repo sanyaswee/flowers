@@ -96,7 +96,7 @@ pub async fn publish_boot(client: &Arc<AsyncClient>) {
 }
 
 /// Helper function to override settings
-async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
+pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
     let mut t = String::new();
     mqtt_convention::settings_override(&mut t, &*entry.node_id);
 

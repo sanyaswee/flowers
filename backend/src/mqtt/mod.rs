@@ -9,7 +9,7 @@ use sqlx::SqlitePool;
 pub mod router;
 
 /// Initialize the MQTT task
-pub async fn init(pool: SqlitePool) {
+pub async fn init(pool: SqlitePool) -> Arc<AsyncClient> {
     let mut mqtt_options = MqttOptions::new("flowers-backend", "127.0.0.1", 1883);
     mqtt_options.set_keep_alive(Duration::from_secs(60));
 
@@ -30,8 +30,11 @@ pub async fn init(pool: SqlitePool) {
     router::publish_boot(&client).await;
 
     println!("Listening for MQTT messages on 127.0.0.1:1883");
-
-    poll_loop(event_loop, routes, client, pool).await;
+    let client_ = client.clone();
+    tokio::spawn(async move {
+        poll_loop(event_loop, routes, client, pool).await;
+    });
+    client_
 }
 
 /// MQTT event loop. Each incoming publish is dispatched on its own task

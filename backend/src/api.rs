@@ -1,10 +1,13 @@
 //! This module is responsible for api endpoints
 
+use std::sync::Arc;
+
 use axum::{Json, Router};
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 
+use rumqttc::AsyncClient;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
@@ -17,7 +20,13 @@ pub struct VerboseNamePayload {
     pub verbose_name: String,
 }
 
-pub fn app(pool: SqlitePool) -> Router {
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: SqlitePool,
+    pub mqtt_client: Arc<AsyncClient>,
+}
+
+pub fn app(state: AppState) -> Router { // TODO
     Router::new()
         // Getters
         .route("/api/nodes", get(get_all_nodes))
@@ -34,7 +43,7 @@ pub fn app(pool: SqlitePool) -> Router {
         .route("/api/nodes/{node_id}/channels/{channel_id}/disable", post(disable_channel))
         .route("/api/nodes/{node_id}/settings", post(set_node_settings))
         .route("/api/nodes/{node_id}/channels/{channel_id}/settings", post(set_channel_settings))
-        .with_state(pool)
+        .with_state(state)
 }
 
 async fn get_all_nodes(State(pool): State<SqlitePool>) -> Result<Json<Vec<NodeEntry>>, StatusCode> {
