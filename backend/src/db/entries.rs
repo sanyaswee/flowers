@@ -388,8 +388,6 @@ impl ChannelEntry {
         Self::push(pool, node_id, idx, PlantSettings::default()).await
     }
 
-
-
     /// Get channel settings
     pub fn get_settings(&self) -> PlantSettings {
         let mut s = PlantSettings::default();
@@ -412,6 +410,34 @@ impl ChannelEntry {
             .await?;
 
         self.verbose_name = Some(name);
+
+        Ok(())
+    }
+
+    /// Enable channel
+    pub async fn enable(&mut self, pool: &SqlitePool) -> Result<(), sqlx::Error> {
+        self.set_enable(pool, true).await
+    }
+
+    /// Disable channel
+    pub async fn disable(&mut self, pool: &SqlitePool) -> Result<(), sqlx::Error> {
+        self.set_enable(pool, false).await
+    }
+
+    /// Enable / disable
+    pub async fn set_enable(&mut self, pool: &SqlitePool, enable: bool) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE channels SET enabled = ? WHERE node_id = ? AND channel_id = ?
+            "#,
+            enable,
+            self.node_id,
+            self.channel_id,
+        )
+            .execute(pool)
+            .await?;
+
+        self.enabled = enable;
 
         Ok(())
     }

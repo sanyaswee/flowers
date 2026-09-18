@@ -25,8 +25,10 @@ pub fn app(pool: SqlitePool) -> Router {
         .route("/api/nodes/{node_id}/telemetry", get(get_node_telemetry))
         .route("/api/nodes/{node_id}/channels/{channel_id}/telemetry", get(get_channel_telemetry))
         // Setters
-        .route("/api/nodes/:node_id/verbose", post(set_node_verbose_name))
-        .route("/api/nodes/:node_id/channels/:channel_id/verbose", post(set_channel_verbose_name))
+        .route("/api/nodes/{node_id}/verbose", post(set_node_verbose_name))
+        .route("/api/nodes/{node_id}/channels/{channel_id}/verbose", post(set_channel_verbose_name))
+        .route("/api/nodes/{node_id}/channels/{channel_id}/enable", post(enable_channel))
+        .route("/api/nodes/{node_id}/channels/{channel_id}/disable", post(disable_channel))
         .with_state(pool)
 }
 
@@ -115,6 +117,38 @@ async fn set_channel_verbose_name(
     };
 
     match channel.set_verbose(&pool, payload.verbose_name).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+async fn enable_channel(
+    State(pool): State<SqlitePool>,
+    Path((node_id, channel_id)): Path<(String, u8)>,
+) -> Result<StatusCode, StatusCode> {
+    let mut channel = match ChannelEntry::from_node(&pool, &node_id, channel_id).await {
+        Ok(Some(channel)) => channel,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match channel.enable(&pool).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+async fn disable_channel(
+    State(pool): State<SqlitePool>,
+    Path((node_id, channel_id)): Path<(String, u8)>,
+) -> Result<StatusCode, StatusCode> {
+    let mut channel = match ChannelEntry::from_node(&pool, &node_id, channel_id).await {
+        Ok(Some(channel)) => channel,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match channel.disable(&pool).await {
         Ok(_) => Ok(StatusCode::OK),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
