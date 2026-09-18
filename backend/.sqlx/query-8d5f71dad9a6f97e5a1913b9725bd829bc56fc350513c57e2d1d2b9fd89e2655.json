@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO channel_telemetry (node_id, channel_id, timestamp, uptime, soil_moisture)\n            VALUES (?, ?, ?, ?, ?)\n            RETURNING\n                id as \"id!: i64\",\n                node_id as \"node_id!: String\",\n                channel_id as \"channel_id!: u8\",\n                timestamp as \"timestamp!: NaiveDateTime\",\n                uptime as \"uptime!: i64\",\n                soil_moisture as \"soil_moisture!: f32\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "node_id!: String",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "node_id"
+          }
+        }
+      },
+      {
+        "name": "channel_id!: u8",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "name": "timestamp!: NaiveDateTime",
+        "ordinal": 3,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "timestamp"
+          }
+        }
+      },
+      {
+        "name": "uptime!: i64",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "uptime"
+          }
+        }
+      },
+      {
+        "name": "soil_moisture!: f32",
+        "ordinal": 5,
+        "type_info": "Float",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "soil_moisture"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8d5f71dad9a6f97e5a1913b9725bd829bc56fc350513c57e2d1d2b9fd89e2655"
+}

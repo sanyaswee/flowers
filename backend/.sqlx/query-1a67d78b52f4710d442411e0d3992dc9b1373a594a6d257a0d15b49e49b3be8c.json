@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE nodes SET verbose_name = ? WHERE node_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "1a67d78b52f4710d442411e0d3992dc9b1373a594a6d257a0d15b49e49b3be8c"
+}

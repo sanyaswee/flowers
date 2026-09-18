@@ -263,6 +263,23 @@ impl NodeEntry {
 
         Ok(())
     }
+
+    /// Set node verbose name
+    pub async fn set_verbose(&mut self, pool: &SqlitePool, name: String) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE nodes SET verbose_name = ? WHERE node_id = ?
+            "#,
+            name,
+            self.node_id
+        )
+            .execute(pool)
+            .await?;
+
+        self.verbose_name = Some(name);
+
+        Ok(())
+    }
 }
 
 /// `channels` table
@@ -270,6 +287,7 @@ pub struct ChannelEntry {
     pub id: i64,
     pub node_id: String,
     pub channel_id: u8,
+    pub verbose_name: Option<String>,
     pub enabled: bool,
     pub moisture_m_freq: u16,
 }
@@ -287,6 +305,7 @@ impl ChannelEntry {
                 id,
                 node_id,
                 channel_id as "channel_id: u8",
+                verbose_name as "verbose_name!: String",
                 enabled as "enabled: bool",
                 moisture_m_freq as "moisture_m_freq: u16"
             FROM channels
@@ -313,6 +332,7 @@ impl ChannelEntry {
                 id as "id!: i64",
                 node_id as "node_id!: String",
                 channel_id as "channel_id!: u8",
+                verbose_name as "verbose_name!: String",
                 enabled as "enabled!: bool",
                 moisture_m_freq as "moisture_m_freq!: u16"
             "#,
@@ -339,7 +359,26 @@ impl ChannelEntry {
         s.moisture_m_freq_s = self.moisture_m_freq;
         s
     }
+
+    /// Set node verbose name
+    pub async fn set_verbose(&mut self, pool: &SqlitePool, name: String) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE channels SET verbose_name = ? WHERE node_id = ? AND channel_id = ?
+            "#,
+            name,
+            self.node_id,
+            self.channel_id,
+        )
+            .execute(pool)
+            .await?;
+
+        self.verbose_name = Some(name);
+
+        Ok(())
+    }
 }
+
 
 /// `node_telemetry` table
 pub struct NodeTelemetryEntry {

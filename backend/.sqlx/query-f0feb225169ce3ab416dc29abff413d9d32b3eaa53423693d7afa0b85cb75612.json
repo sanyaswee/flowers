@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id,\n                node_id,\n                channel_id as \"channel_id: u8\",\n                enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\"\n            FROM channels\n            WHERE node_id = ? AND channel_id = ?\n            ",
+  "query": "\n            SELECT * FROM channel_telemetry\n            WHERE node_id = ? AND channel_id = ? AND timestamp = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Integer",
         "origin": {
           "Table": {
-            "table": "channels",
+            "table": "channel_telemetry",
             "name": "id"
           }
         }
@@ -20,55 +20,67 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "channels",
+            "table": "channel_telemetry",
             "name": "node_id"
           }
         }
       },
       {
-        "name": "channel_id: u8",
+        "name": "channel_id",
         "ordinal": 2,
         "type_info": "Integer",
         "origin": {
           "Table": {
-            "table": "channels",
+            "table": "channel_telemetry",
             "name": "channel_id"
           }
         }
       },
       {
-        "name": "enabled: bool",
+        "name": "timestamp",
         "ordinal": 3,
-        "type_info": "Integer",
+        "type_info": "Datetime",
         "origin": {
           "Table": {
-            "table": "channels",
-            "name": "enabled"
+            "table": "channel_telemetry",
+            "name": "timestamp"
           }
         }
       },
       {
-        "name": "moisture_m_freq: u16",
+        "name": "uptime",
         "ordinal": 4,
         "type_info": "Integer",
         "origin": {
           "Table": {
-            "table": "channels",
-            "name": "moisture_m_freq"
+            "table": "channel_telemetry",
+            "name": "uptime"
+          }
+        }
+      },
+      {
+        "name": "soil_moisture",
+        "ordinal": 5,
+        "type_info": "Float",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "soil_moisture"
           }
         }
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 3
     },
     "nullable": [
       false,
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "d34011f8d34a5097a9ddd12c909c63bbc04f3914a779eb9431736264a4963d92"
+  "hash": "f0feb225169ce3ab416dc29abff413d9d32b3eaa53423693d7afa0b85cb75612"
 }
