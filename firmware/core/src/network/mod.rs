@@ -83,7 +83,6 @@ pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                 }
                 // New packet queued
                 Either::Second(packet) => {
-                    // TODO move to a separate function
                     let packet = packet.0;
                     let mut payload = [0u8; 512];
                     info!("Sending packet: {}", packet);
