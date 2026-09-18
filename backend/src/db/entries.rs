@@ -1,7 +1,7 @@
 //! Structs corresponding to DB tables
 
 use chrono::{NaiveDateTime, Duration, Utc};
-
+use serde::Serialize;
 use sqlx::SqlitePool;
 
 use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities};
@@ -9,6 +9,7 @@ use shared::node_settings::{PlantSettings, NodeSettings};
 use shared::telemetry::NodeTelemetry;
 
 /// `nodes` table
+#[derive(Serialize)]
 pub struct NodeEntry {
     pub id: i64,
     pub node_id: String,
@@ -28,6 +29,26 @@ pub struct NodeEntry {
 }
 
 impl NodeEntry {
+    /// Get all DB entries
+    pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Self>, sqlx::Error> {
+        sqlx::query_as!(
+            NodeEntry,
+            r#"
+            SELECT
+                id, node_id, verbose_name as "verbose_name: String",
+                n_channels as "n_channels: u8", water_tank as "water_tank: bool",
+                water_tank_level as "water_tank_level: bool", temperature as "temperature: bool",
+                humidity as "humidity: bool", pressure as "pressure: bool", light as "light: bool",
+                telemetry_report_freq as "telemetry_report_freq: u16", light_m_freq as "light_m_freq: u16",
+                bmpe_m_freq as "bmpe_m_freq: u16", last_boot as "last_boot: NaiveDateTime",
+                last_active as "last_active: NaiveDateTime"
+            FROM nodes
+            "#
+        )
+            .fetch_all(pool)
+            .await
+    }
+
     /// Get DB entry based on node id from packet
     pub async fn from_node_id(pool: &SqlitePool, node_id: &str) -> Result<Option<Self>, sqlx::Error> {
         let node_id = node_id.to_string();
@@ -283,6 +304,7 @@ impl NodeEntry {
 }
 
 /// `channels` table
+#[derive(Serialize)]
 pub struct ChannelEntry {
     pub id: i64,
     pub node_id: String,
@@ -293,6 +315,22 @@ pub struct ChannelEntry {
 }
 
 impl ChannelEntry {
+    /// Get all DB entries
+    pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Self>, sqlx::Error> {
+        sqlx::query_as!(
+            ChannelEntry,
+            r#"
+            SELECT
+                id, node_id, channel_id as "channel_id: u8",
+                verbose_name as "verbose_name: String", enabled as "enabled: bool",
+                moisture_m_freq as "moisture_m_freq: u16"
+            FROM channels
+            "#
+        )
+            .fetch_all(pool)
+            .await
+    }
+
     /// Get channel by node id and index
     pub async fn from_node(pool: &SqlitePool, node_id: &str, idx: u8) -> Result<Option<Self>, sqlx::Error> {
         let node_id = node_id.to_string();
@@ -381,6 +419,7 @@ impl ChannelEntry {
 
 
 /// `node_telemetry` table
+#[derive(Serialize)]
 pub struct NodeTelemetryEntry {
     pub id: i64,
     pub node_id: String,
@@ -395,6 +434,29 @@ pub struct NodeTelemetryEntry {
 }
 
 impl NodeTelemetryEntry {
+    /// Get all entries from node
+    pub async fn from_node_id(pool: &SqlitePool, node_id: &str) -> Result<Vec<Self>, sqlx::Error> {
+        sqlx::query_as!(
+            NodeTelemetryEntry,
+            r#"
+            SELECT
+                id, node_id, timestamp as "timestamp: NaiveDateTime", uptime as "uptime: i64",
+                water_tank_has_water as "water_tank_has_water: bool",
+                water_tank_level as "water_tank_level: f32",
+                temperature as "temperature: f32",
+                pressure as "pressure: f32",
+                humidity as "humidity: f32",
+                light_intensity as "light_intensity: f32"
+            FROM node_telemetry
+            WHERE node_id = ?
+            ORDER BY timestamp DESC
+            LIMIT 100
+            "#,
+            node_id
+        )
+            .fetch_all(pool)
+            .await
+    }
     /// Push new entry into the database
     pub async fn push(
         pool: &SqlitePool,
@@ -457,6 +519,7 @@ impl NodeTelemetryEntry {
 }
 
 /// `channel_telemetry` table
+#[derive(Serialize)]
 pub struct ChannelTelemetryEntry {
     pub id: i64,
     pub node_id: String,
@@ -467,6 +530,28 @@ pub struct ChannelTelemetryEntry {
 }
 
 impl ChannelTelemetryEntry {
+    /// Get all entries for channel
+    pub async fn from_index(pool: &SqlitePool, node_id: &str, channel_id: u8) -> Result<Vec<Self>, sqlx::Error> {
+        let channel_id = channel_id as i64;
+        sqlx::query_as!(
+            ChannelTelemetryEntry,
+            r#"
+            SELECT
+                id, node_id, channel_id as "channel_id: u8",
+                timestamp as "timestamp: NaiveDateTime", uptime as "uptime: i64",
+                soil_moisture as "soil_moisture!: f32"
+            FROM channel_telemetry
+            WHERE node_id = ? AND channel_id = ?
+            ORDER BY timestamp DESC
+            LIMIT 100
+            "#,
+            node_id,
+            channel_id
+        )
+            .fetch_all(pool)
+            .await
+    }
+
     /// Push new entry into the database
     pub async fn push(
         pool: &SqlitePool,
