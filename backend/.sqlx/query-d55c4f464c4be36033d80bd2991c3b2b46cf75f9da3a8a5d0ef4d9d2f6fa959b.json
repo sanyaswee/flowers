@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE nodes SET telemetry_report_freq = ?, light_m_freq = ?, bmpe_m_freq = ? WHERE node_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "d55c4f464c4be36033d80bd2991c3b2b46cf75f9da3a8a5d0ef4d9d2f6fa959b"
+}

@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id, node_id, channel_id as \"channel_id: u8\",\n                timestamp as \"timestamp: NaiveDateTime\", uptime as \"uptime: i64\",\n                soil_moisture as \"soil_moisture!: f32\"\n            FROM channel_telemetry\n            WHERE node_id = ? AND channel_id = ? AND timestamp >= ? AND timestamp <= ?\n            ORDER BY timestamp DESC\n            LIMIT ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "node_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "node_id"
+          }
+        }
+      },
+      {
+        "name": "channel_id: u8",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "name": "timestamp: NaiveDateTime",
+        "ordinal": 3,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "timestamp"
+          }
+        }
+      },
+      {
+        "name": "uptime: i64",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "uptime"
+          }
+        }
+      },
+      {
+        "name": "soil_moisture!: f32",
+        "ordinal": 5,
+        "type_info": "Float",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "soil_moisture"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c0aac33abc4cb371c611b0cddd3bedb3c4df4f31b93c7c08ac8e5a66b9f08915"
+}
