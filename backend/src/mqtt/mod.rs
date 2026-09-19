@@ -29,6 +29,7 @@ pub async fn init(pool: SqlitePool) -> Arc<AsyncClient> {
     // Publish ServerBoot packet
     router::publish_boot(&client).await;
 
+    // Spawn listener task and return a client
     println!("Listening for MQTT messages on 127.0.0.1:1883");
     let client_ = client.clone();
     tokio::spawn(async move {
