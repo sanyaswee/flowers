@@ -1,6 +1,6 @@
 //! Structs corresponding to DB tables
 
-use chrono::{NaiveDateTime, Duration, Utc};
+use chrono::{NaiveDateTime, Duration, Utc, DateTime};
 use serde::Serialize;
 use sqlx::SqlitePool;
 use utoipa::ToSchema;
@@ -525,7 +525,7 @@ impl NodeTelemetryEntry {
         end: Option<NaiveDateTime>,
         limit: Option<i64>,
     ) -> Result<Vec<Self>, sqlx::Error> {
-        let start_ts = start.unwrap_or_else(|| NaiveDateTime::from_timestamp_millis(0).unwrap());
+        let start_ts = start.unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap().naive_utc());
         let end_ts = end.unwrap_or_else(|| Utc::now().naive_utc());
         let limit = limit.unwrap_or(100);
         sqlx::query_as!(
@@ -635,7 +635,7 @@ impl ChannelTelemetryEntry {
         limit: Option<i64>,
     ) -> Result<Vec<Self>, sqlx::Error> {
         let channel_id = channel_id as i64;
-        let start_ts = start.unwrap_or_else(|| NaiveDateTime::from_timestamp_millis(0).unwrap());
+        let start_ts = start.unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap().naive_utc());
         let end_ts = end.unwrap_or_else(|| Utc::now().naive_utc());
         let limit = limit.unwrap_or(100);
 
