@@ -1,4 +1,4 @@
-//! This module is responsible for api endpoints
+//! This module is responsible for API endpoints
 
 use std::sync::Arc;
 
@@ -12,20 +12,65 @@ use chrono::NaiveDateTime;
 use rumqttc::AsyncClient;
 use serde::Deserialize;
 use sqlx::SqlitePool;
+use utoipa::{ToSchema, OpenApi, IntoParams};
+use utoipa_swagger_ui::SwaggerUi;
 
-use shared::node_settings::{NodeSettings, PlantSettings};
+use shared::node_settings::{NodeSettings, PlantSettings, MeasurementFrequencies};
 
 use crate::db::entries::*;
 use crate::mqtt::router::override_settings;
 
-#[derive(Deserialize)]
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        // Getters
+        get_all_nodes,
+        get_node_by_id,
+        get_all_channels,
+        get_channel_by_id,
+        get_node_telemetry,
+        get_channel_telemetry,
+
+        // Setters
+        set_node_verbose_name,
+        set_channel_verbose_name,
+        enable_channel,
+        disable_channel,
+        set_node_settings,
+        set_channel_settings
+    ),
+    components(
+        schemas(
+            // Database models
+            NodeEntry,
+            ChannelEntry,
+            NodeTelemetryEntry,
+            ChannelTelemetryEntry,
+
+            // API payloads and filters
+            VerboseNamePayload,
+            TelemetryFilter,
+
+            // Shared settings models
+            NodeSettings,
+            MeasurementFrequencies,
+            PlantSettings
+        )
+    ),
+    tags(
+        (name = "flowers", description = "Plant telemetry and control API")
+    )
+)]
+pub struct ApiDoc;
+
+#[derive(Deserialize, ToSchema, IntoParams)]
 pub struct TelemetryFilter {
     pub start: Option<NaiveDateTime>,
     pub end: Option<NaiveDateTime>,
     pub limit: Option<i64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct VerboseNamePayload {
     pub verbose_name: String,
 }
@@ -38,6 +83,8 @@ pub struct AppState {
 
 pub fn app(state: AppState) -> Router {
     Router::new()
+        // Docs
+        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
         // Getters
         .route("/api/nodes", get(get_all_nodes))
         .route("/api/nodes/{node_id}", get(get_node_by_id))
@@ -55,6 +102,14 @@ pub fn app(state: AppState) -> Router {
         .with_state(state)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/nodes",
+    responses(
+        (status = 200, description = "List all nodes", body = [NodeEntry]),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn get_all_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeEntry>>, StatusCode> {
     NodeEntry::get_all(&state.pool)
         .await
@@ -62,6 +117,18 @@ async fn get_all_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeEnt
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/nodes/{node_id}",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node")
+    ),
+    responses(
+        (status = 200, description = "Node retrieved successfully", body = NodeEntry),
+        (status = 404, description = "Node not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn get_node_by_id(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
@@ -73,6 +140,14 @@ async fn get_node_by_id(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/channels",
+    responses(
+        (status = 200, description = "List all channels", body = [ChannelEntry]),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn get_all_channels(State(state): State<AppState>) -> Result<Json<Vec<ChannelEntry>>, StatusCode> {
     ChannelEntry::get_all(&state.pool)
         .await
@@ -80,6 +155,19 @@ async fn get_all_channels(State(state): State<AppState>) -> Result<Json<Vec<Chan
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/nodes/{node_id}/channels/{channel_id}",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Channel retrieved successfully", body = ChannelEntry),
+        (status = 404, description = "Channel not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn get_channel_by_id(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
@@ -91,6 +179,18 @@ async fn get_channel_by_id(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/nodes/{node_id}/telemetry",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        TelemetryFilter
+    ),
+    responses(
+        (status = 200, description = "Node telemetry retrieved successfully", body = [NodeTelemetryEntry]),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn get_node_telemetry(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
@@ -102,6 +202,19 @@ async fn get_node_telemetry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/telemetry",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel"),
+        TelemetryFilter
+    ),
+    responses(
+        (status = 200, description = "Channel telemetry retrieved successfully", body = [ChannelTelemetryEntry]),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn get_channel_telemetry(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
@@ -113,6 +226,19 @@ async fn get_channel_telemetry(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/verbose",
+    request_body = VerboseNamePayload,
+    params(
+        ("node_id" = String, Path, description = "The ID of the node")
+    ),
+    responses(
+        (status = 200, description = "Verbose name updated successfully"),
+        (status = 404, description = "Node not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn set_node_verbose_name(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
@@ -130,6 +256,20 @@ async fn set_node_verbose_name(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/verbose",
+    request_body = VerboseNamePayload,
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Channel verbose name updated successfully"),
+        (status = 404, description = "Channel not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn set_channel_verbose_name(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
@@ -147,6 +287,19 @@ async fn set_channel_verbose_name(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/enable",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Channel enabled successfully"),
+        (status = 404, description = "Node or Channel not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn enable_channel(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
@@ -172,6 +325,19 @@ async fn enable_channel(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/disable",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Channel disabled successfully"),
+        (status = 404, description = "Node or Channel not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn disable_channel(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
@@ -197,6 +363,19 @@ async fn disable_channel(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/settings",
+    request_body = NodeSettings,
+    params(
+        ("node_id" = String, Path, description = "The ID of the node")
+    ),
+    responses(
+        (status = 200, description = "Node settings updated successfully"),
+        (status = 404, description = "Node not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn set_node_settings(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
@@ -217,6 +396,20 @@ async fn set_node_settings(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/settings",
+    request_body = PlantSettings,
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Channel settings updated successfully"),
+        (status = 404, description = "Node or Channel not found"),
+        (status = 500, description = "Database error")
+    )
+)]
 async fn set_channel_settings(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,

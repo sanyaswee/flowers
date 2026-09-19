@@ -6,6 +6,7 @@ use crate::telemetry::MAX_PLANT_CHANNELS;
 
 /// The main settings struct
 #[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[non_exhaustive]
 pub struct NodeSettings {
     /// Frequency of creating telemetry packets in seconds
@@ -31,6 +32,7 @@ impl Default for NodeSettings {
 /// Helper struct that contains all possible measurement frequencies
 /// Convention: <quantity>_<unit>
 #[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[non_exhaustive]
 pub struct MeasurementFrequencies {
     /// Light intensity measurement
@@ -51,6 +53,7 @@ impl Default for MeasurementFrequencies {
 
 /// Settings per each channel
 #[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[non_exhaustive]
 pub struct PlantSettings {
     /// Channel is enabled

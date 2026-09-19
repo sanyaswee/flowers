@@ -3,13 +3,14 @@
 use chrono::{NaiveDateTime, Duration, Utc};
 use serde::Serialize;
 use sqlx::SqlitePool;
+use utoipa::ToSchema;
 
 use shared::node_config::{NodeConfig, WaterTankDetection, TelemetryCapabilities};
 use shared::node_settings::{PlantSettings, NodeSettings};
 use shared::telemetry::NodeTelemetry;
 
 /// `nodes` table
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct NodeEntry {
     pub id: i64,
     pub node_id: String,
@@ -334,7 +335,7 @@ impl NodeEntry {
 }
 
 /// `channels` table
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ChannelEntry {
     pub id: i64,
     pub node_id: String,
@@ -501,7 +502,7 @@ impl ChannelEntry {
 
 
 /// `node_telemetry` table
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct NodeTelemetryEntry {
     pub id: i64,
     pub node_id: String,
@@ -613,7 +614,7 @@ impl NodeTelemetryEntry {
 }
 
 /// `channel_telemetry` table
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ChannelTelemetryEntry {
     pub id: i64,
     pub node_id: String,

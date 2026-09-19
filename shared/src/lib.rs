@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(feature = "utoipa"), no_std)]
 
 pub mod node_config;
 pub mod telemetry;
