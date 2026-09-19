@@ -1,67 +1,18 @@
-//! This module is responsible for API endpoints
+//! All API handlers
 
-use std::sync::Arc;
-
-use axum::{Json, Router};
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::Json;
 
 use chrono::NaiveDateTime;
-
-use rumqttc::AsyncClient;
 use serde::Deserialize;
-use sqlx::SqlitePool;
-use utoipa::{ToSchema, OpenApi, IntoParams};
-use utoipa_swagger_ui::SwaggerUi;
+use utoipa::{IntoParams, ToSchema};
 
-use shared::node_settings::{NodeSettings, PlantSettings, MeasurementFrequencies};
+use shared::node_settings::{NodeSettings, PlantSettings};
 
-use crate::db::entries::*;
+use crate::api::AppState;
+use crate::db::entries::{ChannelEntry, ChannelTelemetryEntry, NodeEntry, NodeTelemetryEntry};
 use crate::mqtt::router::override_settings;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        // Getters
-        get_all_nodes,
-        get_node_by_id,
-        get_all_channels,
-        get_channel_by_id,
-        get_node_telemetry,
-        get_channel_telemetry,
-
-        // Setters
-        set_node_verbose_name,
-        set_channel_verbose_name,
-        enable_channel,
-        disable_channel,
-        set_node_settings,
-        set_channel_settings
-    ),
-    components(
-        schemas(
-            // Database models
-            NodeEntry,
-            ChannelEntry,
-            NodeTelemetryEntry,
-            ChannelTelemetryEntry,
-
-            // API payloads and filters
-            VerboseNamePayload,
-            TelemetryFilter,
-
-            // Shared settings models
-            NodeSettings,
-            MeasurementFrequencies,
-            PlantSettings
-        )
-    ),
-    tags(
-        (name = "flowers", description = "Plant telemetry and control API")
-    )
-)]
-pub struct ApiDoc;
 
 #[derive(Deserialize, ToSchema, IntoParams)]
 pub struct TelemetryFilter {
@@ -75,33 +26,6 @@ pub struct VerboseNamePayload {
     pub verbose_name: String,
 }
 
-#[derive(Clone)]
-pub struct AppState {
-    pub pool: SqlitePool,
-    pub mqtt_client: Arc<AsyncClient>,
-}
-
-pub fn app(state: AppState) -> Router {
-    Router::new()
-        // Docs
-        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        // Getters
-        .route("/api/nodes", get(get_all_nodes))
-        .route("/api/nodes/{node_id}", get(get_node_by_id))
-        .route("/api/channels", get(get_all_channels))
-        .route("/api/nodes/{node_id}/channels/{channel_id}", get(get_channel_by_id))
-        .route("/api/nodes/{node_id}/telemetry", get(get_node_telemetry))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/telemetry", get(get_channel_telemetry))
-        // Setters
-        .route("/api/nodes/{node_id}/verbose", post(set_node_verbose_name))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/verbose", post(set_channel_verbose_name))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/enable", post(enable_channel))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/disable", post(disable_channel))
-        .route("/api/nodes/{node_id}/settings", post(set_node_settings))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/settings", post(set_channel_settings))
-        .with_state(state)
-}
-
 #[utoipa::path(
     get,
     path = "/api/nodes",
@@ -110,7 +34,7 @@ pub fn app(state: AppState) -> Router {
         (status = 500, description = "Database error")
     )
 )]
-async fn get_all_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeEntry>>, StatusCode> {
+pub async fn get_all_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeEntry>>, StatusCode> {
     NodeEntry::get_all(&state.pool)
         .await
         .map(Json)
@@ -129,7 +53,7 @@ async fn get_all_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeEnt
         (status = 500, description = "Database error")
     )
 )]
-async fn get_node_by_id(
+pub async fn get_node_by_id(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
 ) -> Result<Json<NodeEntry>, StatusCode> {
@@ -148,7 +72,7 @@ async fn get_node_by_id(
         (status = 500, description = "Database error")
     )
 )]
-async fn get_all_channels(State(state): State<AppState>) -> Result<Json<Vec<ChannelEntry>>, StatusCode> {
+pub async fn get_all_channels(State(state): State<AppState>) -> Result<Json<Vec<ChannelEntry>>, StatusCode> {
     ChannelEntry::get_all(&state.pool)
         .await
         .map(Json)
@@ -168,7 +92,7 @@ async fn get_all_channels(State(state): State<AppState>) -> Result<Json<Vec<Chan
         (status = 500, description = "Database error")
     )
 )]
-async fn get_channel_by_id(
+pub async fn get_channel_by_id(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
 ) -> Result<Json<ChannelEntry>, StatusCode> {
@@ -191,7 +115,7 @@ async fn get_channel_by_id(
         (status = 500, description = "Database error")
     )
 )]
-async fn get_node_telemetry(
+pub async fn get_node_telemetry(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
     Query(filter): Query<TelemetryFilter>,
@@ -215,7 +139,7 @@ async fn get_node_telemetry(
         (status = 500, description = "Database error")
     )
 )]
-async fn get_channel_telemetry(
+pub async fn get_channel_telemetry(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
     Query(filter): Query<TelemetryFilter>,
@@ -239,7 +163,7 @@ async fn get_channel_telemetry(
         (status = 500, description = "Database error")
     )
 )]
-async fn set_node_verbose_name(
+pub async fn set_node_verbose_name(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
     Json(payload): Json<VerboseNamePayload>,
@@ -270,7 +194,7 @@ async fn set_node_verbose_name(
         (status = 500, description = "Database error")
     )
 )]
-async fn set_channel_verbose_name(
+pub async fn set_channel_verbose_name(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
     Json(payload): Json<VerboseNamePayload>,
@@ -300,7 +224,7 @@ async fn set_channel_verbose_name(
         (status = 500, description = "Database error")
     )
 )]
-async fn enable_channel(
+pub async fn enable_channel(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
 ) -> Result<StatusCode, StatusCode> {
@@ -338,7 +262,7 @@ async fn enable_channel(
         (status = 500, description = "Database error")
     )
 )]
-async fn disable_channel(
+pub async fn disable_channel(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
 ) -> Result<StatusCode, StatusCode> {
@@ -376,7 +300,7 @@ async fn disable_channel(
         (status = 500, description = "Database error")
     )
 )]
-async fn set_node_settings(
+pub async fn set_node_settings(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
     Json(settings): Json<NodeSettings>,
@@ -410,7 +334,7 @@ async fn set_node_settings(
         (status = 500, description = "Database error")
     )
 )]
-async fn set_channel_settings(
+pub async fn set_channel_settings(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
     Json(settings): Json<PlantSettings>,
