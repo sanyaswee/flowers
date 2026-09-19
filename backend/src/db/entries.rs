@@ -517,7 +517,16 @@ pub struct NodeTelemetryEntry {
 
 impl NodeTelemetryEntry {
     /// Get all entries from node
-    pub async fn from_node_id(pool: &SqlitePool, node_id: &str) -> Result<Vec<Self>, sqlx::Error> {
+    pub async fn from_node_id(
+        pool: &SqlitePool,
+        node_id: &str,
+        start: Option<NaiveDateTime>,
+        end: Option<NaiveDateTime>,
+        limit: Option<i64>,
+    ) -> Result<Vec<Self>, sqlx::Error> {
+        let start_ts = start.unwrap_or_else(|| NaiveDateTime::from_timestamp_millis(0).unwrap());
+        let end_ts = end.unwrap_or_else(|| Utc::now().naive_utc());
+        let limit = limit.unwrap_or(100);
         sqlx::query_as!(
             NodeTelemetryEntry,
             r#"
@@ -530,11 +539,14 @@ impl NodeTelemetryEntry {
                 humidity as "humidity: f32",
                 light_intensity as "light_intensity: f32"
             FROM node_telemetry
-            WHERE node_id = ?
+            WHERE node_id = ? AND timestamp >= ? AND timestamp <= ?
             ORDER BY timestamp DESC
-            LIMIT 100
+            LIMIT ?
             "#,
-            node_id
+            node_id,
+            start_ts,
+            end_ts,
+            limit,
         )
             .fetch_all(pool)
             .await
@@ -613,8 +625,19 @@ pub struct ChannelTelemetryEntry {
 
 impl ChannelTelemetryEntry {
     /// Get all entries for channel
-    pub async fn from_index(pool: &SqlitePool, node_id: &str, channel_id: u8) -> Result<Vec<Self>, sqlx::Error> {
+    pub async fn from_index(
+        pool: &SqlitePool,
+        node_id: &str,
+        channel_id: u8,
+        start: Option<NaiveDateTime>,
+        end: Option<NaiveDateTime>,
+        limit: Option<i64>,
+    ) -> Result<Vec<Self>, sqlx::Error> {
         let channel_id = channel_id as i64;
+        let start_ts = start.unwrap_or_else(|| NaiveDateTime::from_timestamp_millis(0).unwrap());
+        let end_ts = end.unwrap_or_else(|| Utc::now().naive_utc());
+        let limit = limit.unwrap_or(100);
+
         sqlx::query_as!(
             ChannelTelemetryEntry,
             r#"
@@ -623,12 +646,15 @@ impl ChannelTelemetryEntry {
                 timestamp as "timestamp: NaiveDateTime", uptime as "uptime: i64",
                 soil_moisture as "soil_moisture!: f32"
             FROM channel_telemetry
-            WHERE node_id = ? AND channel_id = ?
+            WHERE node_id = ? AND channel_id = ? AND timestamp >= ? AND timestamp <= ?
             ORDER BY timestamp DESC
-            LIMIT 100
+            LIMIT ?
             "#,
             node_id,
-            channel_id
+            channel_id,
+            start_ts,
+            end_ts,
+            limit,
         )
             .fetch_all(pool)
             .await

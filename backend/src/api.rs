@@ -3,9 +3,11 @@
 use std::sync::Arc;
 
 use axum::{Json, Router};
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
+
+use chrono::NaiveDateTime;
 
 use rumqttc::AsyncClient;
 use serde::Deserialize;
@@ -15,6 +17,13 @@ use shared::node_settings::{NodeSettings, PlantSettings};
 
 use crate::db::entries::*;
 use crate::mqtt::router::override_settings;
+
+#[derive(Deserialize)]
+pub struct TelemetryFilter {
+    pub start: Option<NaiveDateTime>,
+    pub end: Option<NaiveDateTime>,
+    pub limit: Option<i64>,
+}
 
 #[derive(Deserialize)]
 pub struct VerboseNamePayload {
@@ -85,8 +94,9 @@ async fn get_channel_by_id(
 async fn get_node_telemetry(
     State(state): State<AppState>,
     Path(node_id): Path<String>,
+    Query(filter): Query<TelemetryFilter>,
 ) -> Result<Json<Vec<NodeTelemetryEntry>>, StatusCode> {
-    NodeTelemetryEntry::from_node_id(&state.pool, &node_id)
+    NodeTelemetryEntry::from_node_id(&state.pool, &node_id, filter.start, filter.end, filter.limit)
         .await
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
@@ -95,8 +105,9 @@ async fn get_node_telemetry(
 async fn get_channel_telemetry(
     State(state): State<AppState>,
     Path((node_id, channel_id)): Path<(String, u8)>,
+    Query(filter): Query<TelemetryFilter>,
 ) -> Result<Json<Vec<ChannelTelemetryEntry>>, StatusCode> {
-    ChannelTelemetryEntry::from_index(&state.pool, &node_id, channel_id)
+    ChannelTelemetryEntry::from_index(&state.pool, &node_id, channel_id, filter.start, filter.end, filter.limit)
         .await
         .map(Json)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
