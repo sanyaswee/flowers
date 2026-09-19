@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "backend",
-    "cli",
     "firmware/core",
     "firmware/nodes/rp_pico_2w",
     "shared"
