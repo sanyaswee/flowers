@@ -30,10 +30,6 @@ Run:
 hostname -I
 ```
 The first IP address is the one you need
-#### Windows
-TODO
-#### MacOS
-TODO
 
 ### Using the Debug Probe
 If you have the debug probe connected just run the following in this directory:
