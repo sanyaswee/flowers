@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE channels SET moisture_m_freq = ? WHERE node_id = ? AND channel_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "e8810d6c26c057bec743ae7d32872b403275598af5254d92985d6d0aa83f440d"
+}

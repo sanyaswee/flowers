@@ -1,0 +1,162 @@
+//! Wi-Fi driver for the CYW43439 chip on the Pico 2 W
+//!
+//! `wifi::init(...)` spawns the driver + network tasks
+
+use core::str::FromStr;
+
+use cyw43::aligned_bytes;
+use cyw43_pio::{DEFAULT_CLOCK_DIVIDER, PioSpi};
+
+use defmt::info;
+
+use embassy_executor::Spawner;
+use embassy_net::tcp::{ConnectError, TcpSocket};
+use embassy_net::{Config as NetConfig, IpEndpoint, Ipv4Address, Stack, StackResources};
+
+use embassy_rp::Peri;
+use embassy_rp::bind_interrupts;
+use embassy_rp::dma;
+use embassy_rp::gpio::{Level, Output};
+use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
+use embassy_rp::pio::{InterruptHandler as PioInterruptHandler, Pio};
+
+use embassy_time::{Duration, Timer};
+
+use static_cell::StaticCell;
+
+use core_logic::network::provider::TcpProvider;
+
+bind_interrupts!(struct Irqs {
+    PIO0_IRQ_0 => PioInterruptHandler<PIO0>;
+    DMA_IRQ_0 => dma::InterruptHandler<DMA_CH0>;
+});
+
+/// Load Wi-Fi credentials
+/// TODO replace with AP later
+const WIFI_SSID: &str = include_str!("../../../secrets/ssid.txt");
+const WIFI_PASSWORD: &str = include_str!("../../../secrets/password.txt");
+
+/// Get server address
+const SERVER_IP: &str = include_str!("../../../secrets/ip.txt");
+const SERVER_PORT: u16 = 1883; // standard MQTT port
+
+/// The Wi-Fi transporter task
+pub struct WifiTransport {
+    pub stack: Stack<'static>,
+    server: IpEndpoint,
+}
+
+impl TcpProvider for WifiTransport {
+    type Stream = TcpSocket<'static>;
+    type Error = ConnectError;
+
+    async fn connect(&mut self) -> Result<Self::Stream, Self::Error> {
+        static mut TCP_RX: [u8; 1024] = [0; 1024];
+        static mut TCP_TX: [u8; 1024] = [0; 1024];
+
+        // Create raw pointers first, then dereference them into mutable slices
+        // to comply with Rust 2024 strict aliasing rules
+        // TODO research if there is a safe way to do so
+        #[allow(clippy::deref_addrof)]
+        let rx_buf = unsafe { &mut *(&raw mut TCP_RX) };
+        #[allow(clippy::deref_addrof)]
+        let tx_buf = unsafe { &mut *(&raw mut TCP_TX) };
+
+        let mut socket = TcpSocket::new(self.stack, rx_buf, tx_buf);
+
+        socket.connect(self.server).await?;
+
+        Ok(socket)
+    }
+}
+
+#[embassy_executor::task]
+async fn cyw43_task(
+    runner: cyw43::Runner<'static, cyw43::SpiBus<Output<'static>, PioSpi<'static, PIO0, 0>>>,
+) -> ! {
+    runner.run().await
+}
+
+#[embassy_executor::task]
+async fn net_task(mut runner: embassy_net::Runner<'static, cyw43::NetDriver<'static>>) -> ! {
+    runner.run().await
+}
+
+/// Initialize the CYW43 chip, join the network and wait for IP
+pub async fn init(
+    spawner: Spawner,
+    pio0: Peri<'static, PIO0>,
+    pin_23: Peri<'static, PIN_23>,
+    pin_24: Peri<'static, PIN_24>,
+    pin_25: Peri<'static, PIN_25>,
+    pin_29: Peri<'static, PIN_29>,
+    dma_ch0: Peri<'static, DMA_CH0>,
+) -> WifiTransport {
+    // Load CYW43 firmware
+    let fw = aligned_bytes!("../../../cyw43/43439A0.bin");
+    let clm = aligned_bytes!("../../../cyw43/43439A0_clm.bin");
+    let nvram = aligned_bytes!("../../../cyw43/nvram_rp2040.bin");
+
+    // Hardware setup
+    let pwr = Output::new(pin_23, Level::Low);
+    let cs = Output::new(pin_25, Level::High);
+    let mut pio = Pio::new(pio0, Irqs);
+
+    let spi = PioSpi::new(
+        &mut pio.common,
+        pio.sm0,
+        DEFAULT_CLOCK_DIVIDER,
+        pio.irq0,
+        cs,
+        pin_24,
+        pin_29,
+        dma::Channel::new(dma_ch0, Irqs),
+    );
+
+    static STATE: StaticCell<cyw43::State> = StaticCell::new();
+    let state = STATE.init(cyw43::State::new());
+
+    let (net_device, mut control, runner) = cyw43::new(state, pwr, spi, fw, nvram).await;
+    spawner.spawn(cyw43_task(runner).unwrap());
+
+    control.init(clm).await;
+    control
+        .set_power_management(cyw43::PowerManagementMode::None)
+        .await;
+
+    // Network setup
+    static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
+    let (stack, net_runner) = embassy_net::new(
+        net_device,
+        NetConfig::dhcpv4(Default::default()),
+        RESOURCES.init(StackResources::new()),
+        0x0123_4567_89ab_cdef, // TODO: replace with a TRNG seed
+    );
+    spawner.spawn(net_task(net_runner).unwrap());
+
+    // Connect to Wi-Fi
+    info!("Connecting to Wi-Fi network: {}...", WIFI_SSID);
+    loop {
+        match control
+            .join(WIFI_SSID, cyw43::JoinOptions::new(WIFI_PASSWORD.as_bytes()))
+            .await
+        {
+            Ok(_) => break,
+            Err(err) => {
+                info!("Join failed with error: {}. Retrying...", err);
+                Timer::after(Duration::from_secs(1)).await;
+            }
+        }
+    }
+    info!("Wi-Fi connected! Waiting for DHCP lease...");
+
+    stack.wait_config_up().await;
+
+    let server_addr = Ipv4Address::from_str(SERVER_IP.trim())
+        .expect("SERVER_IP in secrets/server_ip.txt is not a valid IPv4 address");
+    let server = IpEndpoint::from((server_addr, SERVER_PORT));
+
+    info!("Server target set to {}:{}", SERVER_IP, SERVER_PORT);
+
+    WifiTransport { stack, server }
+}

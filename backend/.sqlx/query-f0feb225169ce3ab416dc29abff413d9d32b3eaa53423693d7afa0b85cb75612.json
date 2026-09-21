@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT * FROM channel_telemetry\n            WHERE node_id = ? AND channel_id = ? AND timestamp = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "node_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "node_id"
+          }
+        }
+      },
+      {
+        "name": "channel_id",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "name": "timestamp",
+        "ordinal": 3,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "timestamp"
+          }
+        }
+      },
+      {
+        "name": "uptime",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "uptime"
+          }
+        }
+      },
+      {
+        "name": "soil_moisture",
+        "ordinal": 5,
+        "type_info": "Float",
+        "origin": {
+          "Table": {
+            "table": "channel_telemetry",
+            "name": "soil_moisture"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "f0feb225169ce3ab416dc29abff413d9d32b3eaa53423693d7afa0b85cb75612"
+}

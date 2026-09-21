@@ -1,4 +1,4 @@
-name: Firmware CI
+name: Build nodes
 
 on:
   push:
@@ -16,15 +16,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
+          components: clippy
           targets: thumbv8m.main-none-eabihf
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "firmware/nodes/*"
 
-      - name: Build firmware
+      - name: Create dummy credentials for CI
         run: |
-          cargo build \
-            -p rp-pico-2w \
-            --release \
-            --target thumbv8m.main-none-eabihf
+          mkdir -p firmware/secrets
+          echo "192.168.1.100" > firmware/secrets/ip.txt
+          echo "dummy_ssid" > firmware/secrets/ssid.txt
+          echo "dummy_password" > firmware/secrets/password.txt
+
+      - name: Build all firmwares
+        run: |
+          cd firmware/nodes
+          
+          for node_dir in */; do
+            if [ -f "${node_dir}Cargo.toml" ]; then
+              echo "::group::Building ${node_dir}"
+              cd "${node_dir}"
+          
+              # Fail on warnings
+              echo "Checking for warnings..."
+              cargo clippy --release -- -D warnings
+          
+              # Build firmware
+              echo "Running cargo build..."
+              cargo build --release
+          
+              cd ..
+              echo "::endgroup::"
+            fi
+          done

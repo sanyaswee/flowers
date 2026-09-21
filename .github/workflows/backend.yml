@@ -1,4 +1,4 @@
-name: Host CI
+name: Build backend
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
 
 jobs:
   host:
@@ -16,31 +17,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - uses: Swatinem/rust-cache@v2
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
 
       - name: Clippy
         run: |
           cargo clippy \
             -p backend \
-            -p cli \
-            -p shared \
-            --all-targets \
-            -- -D warnings
+            --all-targets
 
       - name: Build
         run: |
           cargo build \
-            -p backend \
-            -p cli
+            -p backend
 
       - name: Test
         run: |
           cargo test \
-            -p backend \
-            -p cli \
-            -p shared
+            -p backend

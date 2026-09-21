@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE nodes SET last_active = ? WHERE node_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d5bfda4d6cdd35a768bd6b52c9724d873c395ebe8c2258962536429e5aa9b28a"
+}

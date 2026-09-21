@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id, node_id, channel_id as \"channel_id: u8\",\n                verbose_name as \"verbose_name: String\", enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\",\n                watering_time as \"watering_time: u16\"\n            FROM channels\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "node_id",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "node_id"
+          }
+        }
+      },
+      {
+        "name": "channel_id: u8",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "name": "verbose_name: String",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "verbose_name"
+          }
+        }
+      },
+      {
+        "name": "enabled: bool",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "enabled"
+          }
+        }
+      },
+      {
+        "name": "moisture_m_freq: u16",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "moisture_m_freq"
+          }
+        }
+      },
+      {
+        "name": "watering_time: u16",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "watering_time"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e6b7ac0231cc07505d449acfa9fc3e7eee3d25a5666acd3cbe65c9a97a5aeec6"
+}

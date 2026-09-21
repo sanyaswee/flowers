@@ -1,9 +1,8 @@
 [workspace]
 members = [
     "backend",
-    "cli",
     "firmware/core",
-    "firmware/rp_pico_2w",
+    "firmware/nodes/rp_pico_2w",
     "shared"
 ]
 resolver = "3"

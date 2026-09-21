@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE nodes SET\n                n_channels = ?,\n                water_tank = ?,\n                water_tank_level = ?,\n                temperature = ?,\n                humidity = ?,\n                pressure = ?,\n                light = ?\n            WHERE node_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "0d0b9114fe535bc32bc4bb388c94ab1197887dba4b60bda159556245a44871c9"
+}

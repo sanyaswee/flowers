@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE channels SET verbose_name = ? WHERE node_id = ? AND channel_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "45fe246f39088a2dd1b5b20fbf77fd38f9aaaecf9448b272d215b3072dad216b"
+}

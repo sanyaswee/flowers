@@ -1,1 +1,13 @@
+# Build dir
 /target
+
+# IDE files
+.idea/
+
+# WiFi credentials
+firmware/secrets/*
+
+# Database
+.env
+backend/flowers.db
+backend/flowers.db-*
