@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id, node_id, channel_id as \"channel_id: u8\",\n                verbose_name as \"verbose_name: String\", enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\"\n            FROM channels\n            ",
+  "query": "\n            SELECT\n                id,\n                node_id,\n                channel_id as \"channel_id: u8\",\n                verbose_name as \"verbose_name!: String\",\n                enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\",\n                watering_time as \"watering_time: u16\"\n            FROM channels\n            WHERE node_id = ? AND channel_id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -37,7 +37,7 @@
         }
       },
       {
-        "name": "verbose_name: String",
+        "name": "verbose_name!: String",
         "ordinal": 3,
         "type_info": "Text",
         "origin": {
@@ -68,10 +68,21 @@
             "name": "moisture_m_freq"
           }
         }
+      },
+      {
+        "name": "watering_time: u16",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "watering_time"
+          }
+        }
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 2
     },
     "nullable": [
       false,
@@ -79,8 +90,9 @@
       false,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "986364b3847463a6e954f971159d35276b1f35b222931314ed24a1e454b9f000"
+  "hash": "2e48727d257067573835d1e58fa5ac23f159a5a2ccd5dd45a8b286161735f296"
 }
