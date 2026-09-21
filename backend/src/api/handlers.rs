@@ -12,7 +12,7 @@ use shared::node_settings::{NodeSettings, PlantSettings};
 
 use crate::api::AppState;
 use crate::db::entries::{ChannelEntry, ChannelTelemetryEntry, NodeEntry, NodeTelemetryEntry};
-use crate::mqtt::router::override_settings;
+use crate::mqtt::router::{override_settings, water_plant};
 
 #[derive(Deserialize, ToSchema, IntoParams)]
 pub struct TelemetryFilter {
@@ -358,4 +358,39 @@ pub async fn set_channel_settings(
         },
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/water",
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Watering command sent successfully"),
+        (status = 404, description = "Node or channel not found"),
+        (status = 500, description = "Database error")
+    )
+)]
+pub async fn water_channel(
+    State(state): State<AppState>,
+    Path((node_id, channel_id)): Path<(String, u8)>,
+) -> Result<StatusCode, StatusCode> {
+    let node = match NodeEntry::from_node_id(&state.pool, &node_id).await {
+        Ok(Some(node)) => node,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    // Verify the channel actually exists in the database
+    let _channel = match ChannelEntry::from_node(&state.pool, &node_id, channel_id).await {
+        Ok(Some(channel)) => channel,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    water_plant(state.mqtt_client, node, channel_id).await;
+
+    Ok(StatusCode::OK)
 }

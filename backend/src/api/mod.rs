@@ -35,7 +35,8 @@ use handlers::*;
         enable_channel,
         disable_channel,
         set_node_settings,
-        set_channel_settings
+        set_channel_settings,
+        water_channel
     ),
     components(
         schemas(
@@ -85,5 +86,6 @@ pub fn app(state: AppState) -> Router {
         .route("/api/nodes/{node_id}/channels/{channel_id}/disable", post(disable_channel))
         .route("/api/nodes/{node_id}/settings", post(set_node_settings))
         .route("/api/nodes/{node_id}/channels/{channel_id}/settings", post(set_channel_settings))
+        .route("/api/nodes/{node_id}/channels/{channel_id}/water", post(water_channel))
         .with_state(state)
 }

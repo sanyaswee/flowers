@@ -97,15 +97,15 @@ pub async fn publish_boot(client: &Arc<AsyncClient>) {
 
 /// Helper function to override settings
 pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
-    let mut t = String::new();
-    mqtt_convention::settings_override(&mut t, &*entry.node_id);
-
     let settings = entry.get_settings(&pool).await;
     if settings.is_err() {
         eprintln!("DB Error: {:?}", settings.err());
         return;
     }
     let settings = settings.unwrap();
+
+    let mut t = String::new();
+    mqtt_convention::settings_override(&mut t, &*entry.node_id);
 
     let p = NodePacket::new(0, PacketPayload::SettingsOverride(settings));
     let buf = &mut [0u8; 512];
@@ -116,6 +116,28 @@ pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entr
             Err(e) => eprintln!("Failed to publish SettingsOverride packet: {:?}", e),
         },
         Err(e) => eprintln!("Failed to serialize SettingsOverride packet: {:?}", e),
+    };
+}
+
+/// Water the channel
+pub async fn water_plant(client: Arc<AsyncClient>, entry: NodeEntry, channel_id: u8) {
+    if channel_id >= entry.n_channels {
+        eprintln!("Invalid channel ID!");
+        return;
+    }
+
+    let mut t = String::new();
+    mqtt_convention::water(&mut t, &*entry.node_id);
+
+    let p = NodePacket::new(0, PacketPayload::Water(channel_id));
+    let buf = &mut [0u8; 512];
+
+    match p.serialize(buf) {
+        Ok(len) => match client.publish(t.clone(), QoS::AtMostOnce, false, &buf[..len]).await {
+            Ok(_) => println!("Water packet published ({})", t),
+            Err(e) => eprintln!("Failed to publish Water packet: {:?}", e),
+        },
+        Err(e) => eprintln!("Failed to serialize Water packet: {:?}", e),
     };
 }
 
