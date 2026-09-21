@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::telemetry::MAX_PLANT_CHANNELS;
+use crate::MAX_PLANT_CHANNELS;
 
 /// The main settings struct
 #[derive(Copy, Clone, defmt::Format, Debug, Deserialize, Serialize)]

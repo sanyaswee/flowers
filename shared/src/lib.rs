@@ -5,3 +5,6 @@ pub mod telemetry;
 pub mod packets;
 pub mod node_settings;
 pub mod mqtt_convention;
+
+/// Maximum number of plants allowed per node
+pub const MAX_PLANT_CHANNELS: usize = 8;

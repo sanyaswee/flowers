@@ -1,9 +1,7 @@
 //! This module contains telemetry related structs
 
 use serde::{Serialize, Deserialize};
-
-/// Maximum number of plants allowed per node
-pub(crate) const MAX_PLANT_CHANNELS: usize = 8;
+use crate::MAX_PLANT_CHANNELS;
 
 /// Node specific telemetry
 #[derive(defmt::Format, Clone, Serialize, Deserialize, Debug)]
