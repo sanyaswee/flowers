@@ -1,16 +1,21 @@
 //! This module contains `PACKET_CHANNEL` and related helper functions
 
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
-use embassy_sync::priority_channel::{PriorityChannel, Max};
+use embassy_sync::priority_channel::{Max, PriorityChannel};
 use embassy_time::Instant;
 
 use shared::packets::{Packet, PacketPayload};
 
 use crate::network::priority::PriorityPacketWrapper;
-use crate::{settings, NODE_CONFIG};
+use crate::{NODE_CONFIG, settings};
 
 /// The channel for receiving the packets from all over the program
-pub(crate) static PACKET_CHANNEL: PriorityChannel<ThreadModeRawMutex, PriorityPacketWrapper, Max, { settings::TELEMETRY_CHANNEL_SIZE  }> = PriorityChannel::new();
+pub(crate) static PACKET_CHANNEL: PriorityChannel<
+    ThreadModeRawMutex,
+    PriorityPacketWrapper,
+    Max,
+    { settings::TELEMETRY_CHANNEL_SIZE },
+> = PriorityChannel::new();
 
 /// Function to create a packet from generic payload
 pub async fn create_packet(payload: PacketPayload) -> Packet {
@@ -23,5 +28,7 @@ pub async fn create_packet(payload: PacketPayload) -> Packet {
 pub async fn push_boot() {
     let config = NODE_CONFIG.get().await;
     let boot_packet = create_packet(PacketPayload::NodeBoot(config.clone())).await;
-    PACKET_CHANNEL.send(PriorityPacketWrapper(boot_packet)).await;
+    PACKET_CHANNEL
+        .send(PriorityPacketWrapper(boot_packet))
+        .await;
 }

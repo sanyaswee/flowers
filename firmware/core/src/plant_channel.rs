@@ -20,8 +20,8 @@ use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
 
 /// Watering signals array
-pub static WATERING_SIGNALS:
-    [Signal<CriticalSectionRawMutex, ()>; MAX_PLANT_CHANNELS] = [const { Signal::new() }; MAX_PLANT_CHANNELS];
+pub static WATERING_SIGNALS: [Signal<CriticalSectionRawMutex, ()>; MAX_PLANT_CHANNELS] =
+    [const { Signal::new() }; MAX_PLANT_CHANNELS];
 
 /// Monitor and report soil moisture
 async fn monitor_moisture<ADC, PIN, Word, P>(
@@ -67,7 +67,7 @@ async fn monitor_moisture<ADC, PIN, Word, P>(
 
                 let mut t = TELEMETRY.lock().await;
                 t.plant_telemetry[idx] = Some(PlantTelemetry::new(stamp, percentage));
-            },
+            }
             Err(e) => {
                 error!("Error reading soil moisture: {}", e)
             }
@@ -119,6 +119,7 @@ pub async fn plant_channel<ADC, PIN, Word, P>(
 {
     join(
         monitor_moisture(idx, adc_bus, moisture_pin, moisture_power_pin),
-        water_on_signal(idx, pump_pin)
-    ).await;
+        water_on_signal(idx, pump_pin),
+    )
+    .await;
 }

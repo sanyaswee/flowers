@@ -78,7 +78,7 @@ pub enum PacketPayload {
 
     /// Packet sent by server that contains the actual node settings
     SettingsOverride(NodeSettings),
-    
+
     /// Water the channel on given index
     /// Sent by server
     Water(u8),

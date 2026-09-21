@@ -5,7 +5,7 @@
 use core::str::FromStr;
 
 use cyw43::aligned_bytes;
-use cyw43_pio::{PioSpi, DEFAULT_CLOCK_DIVIDER};
+use cyw43_pio::{DEFAULT_CLOCK_DIVIDER, PioSpi};
 
 use defmt::info;
 
@@ -13,12 +13,12 @@ use embassy_executor::Spawner;
 use embassy_net::tcp::{ConnectError, TcpSocket};
 use embassy_net::{Config as NetConfig, IpEndpoint, Ipv4Address, Stack, StackResources};
 
+use embassy_rp::Peri;
 use embassy_rp::bind_interrupts;
 use embassy_rp::dma;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::{InterruptHandler as PioInterruptHandler, Pio};
-use embassy_rp::Peri;
 
 use embassy_time::{Duration, Timer};
 
@@ -57,7 +57,9 @@ impl TcpProvider for WifiTransport {
         // Create raw pointers first, then dereference them into mutable slices
         // to comply with Rust 2024 strict aliasing rules
         // TODO research if there is a safe way to do so
+        #[allow(clippy::deref_addrof)]
         let rx_buf = unsafe { &mut *(&raw mut TCP_RX) };
+        #[allow(clippy::deref_addrof)]
         let tx_buf = unsafe { &mut *(&raw mut TCP_TX) };
 
         let mut socket = TcpSocket::new(self.stack, rx_buf, tx_buf);

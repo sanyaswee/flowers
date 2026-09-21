@@ -52,7 +52,10 @@ impl NodeEntry {
     }
 
     /// Get DB entry based on node id from packet
-    pub async fn from_node_id(pool: &SqlitePool, node_id: &str) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn from_node_id(
+        pool: &SqlitePool,
+        node_id: &str,
+    ) -> Result<Option<Self>, sqlx::Error> {
         let node_id = node_id.to_string();
         sqlx::query_as!(
             NodeEntry,
@@ -77,8 +80,8 @@ impl NodeEntry {
             "#,
             node_id
         )
-            .fetch_optional(pool)
-            .await
+        .fetch_optional(pool)
+        .await
     }
 
     /// Push new entry into database
@@ -90,7 +93,10 @@ impl NodeEntry {
         settings: NodeSettings,
     ) -> Result<Self, sqlx::Error> {
         let water_tank = !matches!(config.water_tank_detection, WaterTankDetection::None);
-        let water_tank_level = matches!(config.water_tank_detection, WaterTankDetection::LevelDetection);
+        let water_tank_level = matches!(
+            config.water_tank_detection,
+            WaterTankDetection::LevelDetection
+        );
 
         let now = Utc::now().naive_utc();
         let last_boot = now - Duration::milliseconds(uptime as i64);
@@ -152,11 +158,16 @@ impl NodeEntry {
             last_boot,
             last_active,
         )
-            .fetch_one(pool)
-            .await
+        .fetch_one(pool)
+        .await
     }
 
-    pub async fn push_default(pool: &SqlitePool, node_id: &str, uptime: u64, config: NodeConfig) -> Result<Self, sqlx::Error> {
+    pub async fn push_default(
+        pool: &SqlitePool,
+        node_id: &str,
+        uptime: u64,
+        config: NodeConfig,
+    ) -> Result<Self, sqlx::Error> {
         Self::push(pool, node_id, uptime, config, NodeSettings::default()).await
     }
 
@@ -171,17 +182,13 @@ impl NodeEntry {
         } else {
             WaterTankDetection::None
         };
-        let telemetry = TelemetryCapabilities::new(
-            self.temperature,
-            self.humidity,
-            self.pressure,
-            self.light
-        );
+        let telemetry =
+            TelemetryCapabilities::new(self.temperature, self.humidity, self.pressure, self.light);
         NodeConfig::new(
             self.node_id.parse().unwrap(),
             self.n_channels,
             tank,
-            telemetry
+            telemetry,
         )
     }
 
@@ -198,7 +205,7 @@ impl NodeEntry {
             match ChannelEntry::from_node(pool, node_id, i).await? {
                 Some(ch) => {
                     settings.plant_settings[i as usize] = ch.get_settings();
-                },
+                }
                 None => {
                     ChannelEntry::push_default(pool, node_id, i).await?;
                 }
@@ -209,9 +216,16 @@ impl NodeEntry {
     }
 
     /// Update config in the database
-    pub async fn update_config(&mut self, pool: &SqlitePool, config: NodeConfig) -> Result<(), sqlx::Error> {
+    pub async fn update_config(
+        &mut self,
+        pool: &SqlitePool,
+        config: NodeConfig,
+    ) -> Result<(), sqlx::Error> {
         let water_tank = !matches!(config.water_tank_detection, WaterTankDetection::None);
-        let water_tank_level = matches!(config.water_tank_detection, WaterTankDetection::LevelDetection);
+        let water_tank_level = matches!(
+            config.water_tank_detection,
+            WaterTankDetection::LevelDetection
+        );
         let n_channels = config.n_plant_channels as i64;
 
         sqlx::query!(
@@ -235,8 +249,8 @@ impl NodeEntry {
             config.telemetry.light,
             self.node_id,
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         // Update self only if DB write was successful
         self.n_channels = config.n_plant_channels;
@@ -260,8 +274,8 @@ impl NodeEntry {
             last_boot,
             self.node_id
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         self.last_boot = last_boot;
 
@@ -278,8 +292,8 @@ impl NodeEntry {
             now,
             self.node_id
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         // Update locally only if DB operation succeeds
         self.last_active = now;
@@ -288,7 +302,11 @@ impl NodeEntry {
     }
 
     /// Set node verbose name
-    pub async fn set_verbose(&mut self, pool: &SqlitePool, name: String) -> Result<(), sqlx::Error> {
+    pub async fn set_verbose(
+        &mut self,
+        pool: &SqlitePool,
+        name: String,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             r#"
             UPDATE nodes SET verbose_name = ? WHERE node_id = ?
@@ -296,8 +314,8 @@ impl NodeEntry {
             name,
             self.node_id
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         self.verbose_name = Some(name);
 
@@ -305,7 +323,11 @@ impl NodeEntry {
     }
 
     /// Update node settings
-    pub async fn set_settings(&mut self, pool: &SqlitePool, settings: NodeSettings) -> Result<(), sqlx::Error> {
+    pub async fn set_settings(
+        &mut self,
+        pool: &SqlitePool,
+        settings: NodeSettings,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             r#"
             UPDATE nodes SET telemetry_report_freq = ?, light_m_freq = ?, bmpe_m_freq = ? WHERE node_id = ?
@@ -326,8 +348,10 @@ impl NodeEntry {
         // Update its channel settings
         for i in 0..self.n_channels {
             let channel = ChannelEntry::from_node(pool, &self.node_id, i).await?;
-            if channel.is_some() {
-                channel.unwrap().set_settings(pool, settings.plant_settings[i as usize]).await?;
+            if let Some(mut channel) = channel {
+                channel
+                    .set_settings(pool, settings.plant_settings[i as usize])
+                    .await?;
             }
         }
 

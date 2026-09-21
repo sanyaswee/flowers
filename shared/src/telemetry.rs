@@ -1,7 +1,7 @@
 //! This module contains telemetry related structs
 
-use serde::{Serialize, Deserialize};
 use crate::MAX_PLANT_CHANNELS;
+use serde::{Deserialize, Serialize};
 
 /// Node specific telemetry
 #[derive(defmt::Format, Clone, Serialize, Deserialize, Debug)]
@@ -34,6 +34,12 @@ impl NodeTelemetry {
     }
 }
 
+impl Default for NodeTelemetry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Plant specific telemetry
 #[derive(defmt::Format, Clone, Serialize, Deserialize, Debug, Copy)]
 pub struct PlantTelemetry {
@@ -45,6 +51,9 @@ pub struct PlantTelemetry {
 
 impl PlantTelemetry {
     pub const fn new(stamp: u64, moisture: f32) -> Self {
-        Self { measurement_stamp: stamp, soil_moisture: moisture }
+        Self {
+            measurement_stamp: stamp,
+            soil_moisture: moisture,
+        }
     }
 }

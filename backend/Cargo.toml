@@ -21,4 +21,4 @@ rumqttc = "0.25.1"
 axum = "0.8.9"
 serde = { version = "1.0.229", features = ["derive"] }
 utoipa = { version = "5.5.0", features = ["axum_extras", "chrono"] }
-utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum", "reqwest"] }

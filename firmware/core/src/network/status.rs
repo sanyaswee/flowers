@@ -1,6 +1,6 @@
 //! Module responsible for network status tracking
 
-use embassy_futures::select::{select, Either};
+use embassy_futures::select::{Either, select};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::Timer;
@@ -20,7 +20,7 @@ pub enum NetworkStatus {
 
     /// Successfully connected to host
     /// Indicated by turned off LED
-    Connected
+    Connected,
 }
 
 /// Global-accessible network status
@@ -55,11 +55,11 @@ pub async fn track<P: OutputPin>(mut led: P) {
                         continue;
                     }
                 }
-            },
+            }
             NetworkStatus::HostNotFound => {
                 // LED on
                 led.set_high().unwrap();
-            },
+            }
             NetworkStatus::Connected => {
                 // LED off
                 led.set_low().unwrap();

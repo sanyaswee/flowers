@@ -1,8 +1,8 @@
 //! All API handlers
 
+use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::Json;
 
 use chrono::NaiveDateTime;
 use serde::Deserialize;
@@ -34,7 +34,9 @@ pub struct VerboseNamePayload {
         (status = 500, description = "Database error")
     )
 )]
-pub async fn get_all_nodes(State(state): State<AppState>) -> Result<Json<Vec<NodeEntry>>, StatusCode> {
+pub async fn get_all_nodes(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<NodeEntry>>, StatusCode> {
     NodeEntry::get_all(&state.pool)
         .await
         .map(Json)
@@ -72,7 +74,9 @@ pub async fn get_node_by_id(
         (status = 500, description = "Database error")
     )
 )]
-pub async fn get_all_channels(State(state): State<AppState>) -> Result<Json<Vec<ChannelEntry>>, StatusCode> {
+pub async fn get_all_channels(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<ChannelEntry>>, StatusCode> {
     ChannelEntry::get_all(&state.pool)
         .await
         .map(Json)
@@ -120,10 +124,16 @@ pub async fn get_node_telemetry(
     Path(node_id): Path<String>,
     Query(filter): Query<TelemetryFilter>,
 ) -> Result<Json<Vec<NodeTelemetryEntry>>, StatusCode> {
-    NodeTelemetryEntry::from_node_id(&state.pool, &node_id, filter.start, filter.end, filter.limit)
-        .await
-        .map(Json)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    NodeTelemetryEntry::from_node_id(
+        &state.pool,
+        &node_id,
+        filter.start,
+        filter.end,
+        filter.limit,
+    )
+    .await
+    .map(Json)
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 #[utoipa::path(
@@ -144,10 +154,17 @@ pub async fn get_channel_telemetry(
     Path((node_id, channel_id)): Path<(String, u8)>,
     Query(filter): Query<TelemetryFilter>,
 ) -> Result<Json<Vec<ChannelTelemetryEntry>>, StatusCode> {
-    ChannelTelemetryEntry::from_index(&state.pool, &node_id, channel_id, filter.start, filter.end, filter.limit)
-        .await
-        .map(Json)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    ChannelTelemetryEntry::from_index(
+        &state.pool,
+        &node_id,
+        channel_id,
+        filter.start,
+        filter.end,
+        filter.limit,
+    )
+    .await
+    .map(Json)
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 #[utoipa::path(
@@ -244,7 +261,7 @@ pub async fn enable_channel(
         Ok(_) => {
             override_settings(state.mqtt_client, &state.pool, node).await;
             Ok(StatusCode::OK)
-        },
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -282,7 +299,7 @@ pub async fn disable_channel(
         Ok(_) => {
             override_settings(state.mqtt_client, &state.pool, node).await;
             Ok(StatusCode::OK)
-        },
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -315,7 +332,7 @@ pub async fn set_node_settings(
         Ok(_) => {
             override_settings(state.mqtt_client, &state.pool, node).await;
             Ok(StatusCode::OK)
-        },
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -355,7 +372,7 @@ pub async fn set_channel_settings(
         Ok(_) => {
             override_settings(state.mqtt_client, &state.pool, node).await;
             Ok(StatusCode::OK)
-        },
+        }
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }

@@ -21,10 +21,17 @@ pub struct NodeConfig {
 }
 
 impl NodeConfig {
-    pub const fn new(node_id: NodeId, max_flower_channels: u8, water_tank_detection: WaterTankDetection, telemetry: TelemetryCapabilities) -> Self {
+    pub const fn new(
+        node_id: NodeId,
+        max_flower_channels: u8,
+        water_tank_detection: WaterTankDetection,
+        telemetry: TelemetryCapabilities,
+    ) -> Self {
         Self {
             node_id,
-            n_plant_channels: max_flower_channels, water_tank_detection, telemetry
+            n_plant_channels: max_flower_channels,
+            water_tank_detection,
+            telemetry,
         }
     }
 }
@@ -42,7 +49,10 @@ pub struct TelemetryCapabilities {
 impl TelemetryCapabilities {
     pub const fn new(temperature: bool, humidity: bool, pressure: bool, light: bool) -> Self {
         Self {
-            temperature, humidity, pressure, light
+            temperature,
+            humidity,
+            pressure,
+            light,
         }
     }
 }
@@ -50,7 +60,7 @@ impl TelemetryCapabilities {
 /// Supported water tank telemetry capabilities
 #[derive(defmt::Format, Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 pub enum WaterTankDetection {
-    None, // no water tank telemetry
+    None,           // no water tank telemetry
     EmptyDetection, // can detect whether the tank is empty or not
-    LevelDetection // can detect the exact water level
+    LevelDetection, // can detect the exact water level
 }

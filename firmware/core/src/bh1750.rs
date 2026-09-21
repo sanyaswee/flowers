@@ -1,9 +1,9 @@
 //! A driver for the BH1750 light intensity sensor
 //! https://www.alldatasheet.com/datasheet-pdf/view/338083/ROHM/BH1750FVI.html
 
-use embedded_hal_async::i2c::I2c;
+use defmt::error;
 use embassy_time::Timer;
-use defmt::{error};
+use embedded_hal_async::i2c::I2c;
 
 use crate::SharedI2C;
 use crate::settings::DYNAMIC_SETTINGS;
@@ -16,7 +16,6 @@ const ADDR: u8 = 0x23;
 const CMD_POWER_ON: u8 = 0x01;
 /// Set high resolution mode
 const CMD_CONT_HIGH_RES: u8 = 0x10;
-
 
 /// Convert raw buffer bytes to lux value
 fn raw_to_lux(buf: [u8; 2]) -> f32 {

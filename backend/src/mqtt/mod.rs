@@ -52,7 +52,8 @@ async fn poll_loop(
                 let client = client.clone();
                 let pool = pool.clone(); // safe because SqlitePool is backed by Arc inside sqlx
                 tokio::spawn(async move {
-                    router::dispatch(&routes, &publish.topic, &publish.payload, &client, &pool).await;
+                    router::dispatch(&routes, &publish.topic, &publish.payload, &client, &pool)
+                        .await;
                 });
             }
             Ok(_) => {

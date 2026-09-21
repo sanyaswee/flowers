@@ -32,12 +32,16 @@ impl ChannelEntry {
             FROM channels
             "#
         )
-            .fetch_all(pool)
-            .await
+        .fetch_all(pool)
+        .await
     }
 
     /// Get channel by node id and index
-    pub async fn from_node(pool: &SqlitePool, node_id: &str, idx: u8) -> Result<Option<Self>, sqlx::Error> {
+    pub async fn from_node(
+        pool: &SqlitePool,
+        node_id: &str,
+        idx: u8,
+    ) -> Result<Option<Self>, sqlx::Error> {
         let node_id = node_id.to_string();
         let idx = idx as i64;
 
@@ -58,12 +62,17 @@ impl ChannelEntry {
             node_id,
             idx
         )
-            .fetch_optional(pool)
-            .await
+        .fetch_optional(pool)
+        .await
     }
 
     /// Push new entry into the database
-    pub async fn push(pool: &SqlitePool, node_id: &str, idx: u8, settings: PlantSettings) -> Result<Self, sqlx::Error> {
+    pub async fn push(
+        pool: &SqlitePool,
+        node_id: &str,
+        idx: u8,
+        settings: PlantSettings,
+    ) -> Result<Self, sqlx::Error> {
         let channel_id = idx as i64;
         let moisture_m_freq = settings.moisture_m_freq_s as i64;
         let watering_time = settings.watering_time_s as i64;
@@ -88,12 +97,16 @@ impl ChannelEntry {
             moisture_m_freq,
             watering_time,
         )
-            .fetch_one(pool)
-            .await
+        .fetch_one(pool)
+        .await
     }
 
     /// Shortcut for default settings
-    pub async fn push_default(pool: &SqlitePool, node_id: &str, idx: u8) -> Result<Self, sqlx::Error> {
+    pub async fn push_default(
+        pool: &SqlitePool,
+        node_id: &str,
+        idx: u8,
+    ) -> Result<Self, sqlx::Error> {
         Self::push(pool, node_id, idx, PlantSettings::default()).await
     }
 
@@ -106,7 +119,11 @@ impl ChannelEntry {
     }
 
     /// Set node verbose name
-    pub async fn set_verbose(&mut self, pool: &SqlitePool, name: String) -> Result<(), sqlx::Error> {
+    pub async fn set_verbose(
+        &mut self,
+        pool: &SqlitePool,
+        name: String,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             r#"
             UPDATE channels SET verbose_name = ? WHERE node_id = ? AND channel_id = ?
@@ -115,8 +132,8 @@ impl ChannelEntry {
             self.node_id,
             self.channel_id,
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         self.verbose_name = Some(name);
 
@@ -143,8 +160,8 @@ impl ChannelEntry {
             self.node_id,
             self.channel_id,
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         self.enabled = enable;
 
@@ -152,7 +169,11 @@ impl ChannelEntry {
     }
 
     /// Set soil moisture measurement frequency
-    pub async fn set_moisture_m_freq(&mut self, pool: &SqlitePool, value: u16) -> Result<(), sqlx::Error> {
+    pub async fn set_moisture_m_freq(
+        &mut self,
+        pool: &SqlitePool,
+        value: u16,
+    ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             r#"
             UPDATE channels SET moisture_m_freq = ? WHERE node_id = ? AND channel_id = ?
@@ -161,8 +182,8 @@ impl ChannelEntry {
             self.node_id,
             self.channel_id,
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         self.moisture_m_freq = value;
 
@@ -170,9 +191,14 @@ impl ChannelEntry {
     }
 
     /// Set settings (PlantSettings)
-    pub async fn set_settings(&mut self, pool: &SqlitePool, settings: PlantSettings) -> Result<(), sqlx::Error> {
+    pub async fn set_settings(
+        &mut self,
+        pool: &SqlitePool,
+        settings: PlantSettings,
+    ) -> Result<(), sqlx::Error> {
         self.set_enable(pool, settings.enabled).await?;
-        self.set_moisture_m_freq(pool, settings.moisture_m_freq_s).await?;
+        self.set_moisture_m_freq(pool, settings.moisture_m_freq_s)
+            .await?;
 
         Ok(())
     }

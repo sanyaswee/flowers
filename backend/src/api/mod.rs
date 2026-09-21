@@ -83,16 +83,37 @@ pub fn app(state: AppState) -> Router {
         .route("/api/nodes", get(get_all_nodes))
         .route("/api/nodes/{node_id}", get(get_node_by_id))
         .route("/api/channels", get(get_all_channels))
-        .route("/api/nodes/{node_id}/channels/{channel_id}", get(get_channel_by_id))
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}",
+            get(get_channel_by_id),
+        )
         .route("/api/nodes/{node_id}/telemetry", get(get_node_telemetry))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/telemetry", get(get_channel_telemetry))
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/telemetry",
+            get(get_channel_telemetry),
+        )
         // Setters
         .route("/api/nodes/{node_id}/verbose", post(set_node_verbose_name))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/verbose", post(set_channel_verbose_name))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/enable", post(enable_channel))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/disable", post(disable_channel))
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/verbose",
+            post(set_channel_verbose_name),
+        )
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/enable",
+            post(enable_channel),
+        )
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/disable",
+            post(disable_channel),
+        )
         .route("/api/nodes/{node_id}/settings", post(set_node_settings))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/settings", post(set_channel_settings))
-        .route("/api/nodes/{node_id}/channels/{channel_id}/water", post(water_channel))
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/settings",
+            post(set_channel_settings),
+        )
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/water",
+            post(water_channel),
+        )
         .with_state(state)
 }

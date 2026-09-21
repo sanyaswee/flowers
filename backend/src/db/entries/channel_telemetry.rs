@@ -29,7 +29,8 @@ impl ChannelTelemetryEntry {
         limit: Option<i64>,
     ) -> Result<Vec<Self>, sqlx::Error> {
         let channel_id = channel_id as i64;
-        let start_ts = start.unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap().naive_utc());
+        let start_ts =
+            start.unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap().naive_utc());
         let end_ts = end.unwrap_or_else(|| Utc::now().naive_utc());
         let limit = limit.unwrap_or(100);
 
@@ -51,8 +52,8 @@ impl ChannelTelemetryEntry {
             end_ts,
             limit,
         )
-            .fetch_all(pool)
-            .await
+        .fetch_all(pool)
+        .await
     }
 
     /// Push new entry into the database
@@ -88,8 +89,8 @@ impl ChannelTelemetryEntry {
             uptime_stamp,
             moisture,
         )
-            .fetch_one(pool)
-            .await
+        .fetch_one(pool)
+        .await
     }
 
     /// Check if telemetry is already written
@@ -114,8 +115,8 @@ impl ChannelTelemetryEntry {
             channel_id,
             timestamp,
         )
-            .fetch_optional(pool)
-            .await?;
+        .fetch_optional(pool)
+        .await?;
 
         match row {
             Some(_) => Ok(false),

@@ -1,7 +1,7 @@
 //! Wrapped tasks from core crate
 
-use core_logic::adc::AdcProvider;
 use core_logic::SharedI2C;
+use core_logic::adc::AdcProvider;
 use core_logic::{bh1750, bmp280, network, plant_channel, water_tank};
 
 use embassy_rp::adc::{Adc, Async, Channel as AdcChannel};

@@ -23,33 +23,29 @@ pub async fn topics<'a>(bufs: &'a mut [String<64>; TOPICS_NUM]) -> [TopicFilter<
     for buf in bufs.iter_mut() {
         buf.clear();
     }
-    
+
     let node_id = NODE_CONFIG.get().await.node_id.as_str();
 
     mqtt_convention::server_boot(&mut bufs[0]);
     mqtt_convention::settings_override(&mut bufs[1], node_id);
     mqtt_convention::water(&mut bufs[2], node_id);
 
-    let topics = [
+    [
         TopicFilter::new(bufs[0].as_str()),
         TopicFilter::new(bufs[1].as_str()),
         TopicFilter::new(bufs[2].as_str()),
-    ];
-
-    topics
+    ]
 }
 
 /// Match an incoming topic to its handler
 pub async fn dispatch(topic: &str, payload: &[u8]) {
     info!("Incoming packet received on: {}", topic);
     match Packet::deserialize(payload) {
-        Ok(packet) => {
-            match packet.payload {
-                PacketPayload::ServerBoot => handle_server_boot().await,
-                PacketPayload::SettingsOverride(new) => handle_settings_override(new).await,
-                PacketPayload::Water(channel) => handle_water(channel).await,
-                unknown => error!("Unknown packet received: {}", unknown),
-            }
+        Ok(packet) => match packet.payload {
+            PacketPayload::ServerBoot => handle_server_boot().await,
+            PacketPayload::SettingsOverride(new) => handle_settings_override(new).await,
+            PacketPayload::Water(channel) => handle_water(channel).await,
+            unknown => error!("Unknown packet received: {}", unknown),
         },
         Err(e) => {
             error!("Failed to deserialize incoming packet: {}", e)

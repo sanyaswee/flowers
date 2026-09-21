@@ -20,10 +20,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+          targets: thumbv8m.main-none-eabihf
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "firmware/nodes/*"
+
+      - name: Create dummy credentials for CI
+        run: |
+          mkdir -p firmware/secrets
+          echo "192.168.1.100" > firmware/secrets/ip.txt
+          echo "dummy_ssid" > firmware/secrets/ssid.txt
+          echo "dummy_password" > firmware/secrets/password.txt
 
       - name: Build all firmwares
         run: |
@@ -34,18 +42,11 @@ jobs:
               echo "::group::Building ${node_dir}"
               cd "${node_dir}"
           
-              # Resolve and install target
-              TARGET=$(cargo config get build.target 2>/dev/null | tr -d '"' || true)
-              if [ -n "$TARGET" ]; then
-                echo "Installing target: $TARGET"
-                rustup target add "$TARGET"
-              fi
-          
-              # 1. Fail on warnings using Clippy (leaves config.toml rustflags intact)
+              # Fail on warnings
               echo "Checking for warnings..."
               cargo clippy --release -- -D warnings
           
-              # 2. Build the firmware
+              # Build firmware
               echo "Running cargo build..."
               cargo build --release
           

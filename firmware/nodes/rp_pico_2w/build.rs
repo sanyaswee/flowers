@@ -27,12 +27,18 @@ fn main() {
 
         // Check if the file exists
         let metadata = fs::metadata(path).unwrap_or_else(|_| {
-            panic!("Build failed: The required configuration file '{}' does not exist.", path);
+            panic!(
+                "Build failed: The required configuration file '{}' does not exist.",
+                path
+            );
         });
 
         // Check if the file is empty
         if metadata.len() == 0 {
-            panic!("Build failed: The required configuration file '{}' is empty.", path);
+            panic!(
+                "Build failed: The required configuration file '{}' is empty.",
+                path
+            );
         }
     }
 

@@ -1,12 +1,12 @@
 //! A driver for the BMP280 pressure / temperature sensor
 //! https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp280-ds001.pdf
 
-use embedded_hal_async::i2c::I2c;
-use embassy_time::Timer;
 use defmt::{error, info};
+use embassy_time::Timer;
+use embedded_hal_async::i2c::I2c;
 
-use crate::settings::DYNAMIC_SETTINGS;
 use crate::SharedI2C;
+use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
 
 /// I2C address for BMP280
@@ -19,18 +19,28 @@ const CTRL_MEAS: u8 = 0xF4;
 const DATA_START: u8 = 0xF7;
 
 /// BMP280 config
+/// const CONFIG: u8 = 0b_001_001_11; (that format does not please clippy)
 /// 001 => temperature oversampling x1
 /// 001 => pressure oversampling x1
 /// 11 => normal mode
-const CONFIG: u8 = 0b_001_001_11;
+const CONFIG: u8 = 0b0010_0111;
 
 /// BMP280 calibration data
 struct Calibration {
     /// Temperature calibration
-    dig_t1: u16, dig_t2: i16, dig_t3: i16,
+    dig_t1: u16,
+    dig_t2: i16,
+    dig_t3: i16,
     /// Pressure calibration
-    dig_p1: u16, dig_p2: i16, dig_p3: i16, dig_p4: i16,
-    dig_p5: i16, dig_p6: i16, dig_p7: i16, dig_p8: i16, dig_p9: i16,
+    dig_p1: u16,
+    dig_p2: i16,
+    dig_p3: i16,
+    dig_p4: i16,
+    dig_p5: i16,
+    dig_p6: i16,
+    dig_p7: i16,
+    dig_p8: i16,
+    dig_p9: i16,
 }
 
 /// Parse raw calibration data
@@ -54,17 +64,23 @@ fn parse_calibration(buf: &[u8; 24]) -> Calibration {
 /// Compensation math
 fn compensate(raw_t: i32, raw_p: i32, calibration: &Calibration) -> (f32, f32) {
     // Temperature compensation
-    let var1 = (((raw_t >> 3) - ((calibration.dig_t1 as i32) << 1)) * (calibration.dig_t2 as i32)) >> 11;
-    let var2 = (((((raw_t >> 4) - (calibration.dig_t1 as i32)) * ((raw_t >> 4) - (calibration.dig_t1 as i32))) >> 12) * (calibration.dig_t3 as i32)) >> 14;
+    let var1 =
+        (((raw_t >> 3) - ((calibration.dig_t1 as i32) << 1)) * (calibration.dig_t2 as i32)) >> 11;
+    let var2 = (((((raw_t >> 4) - (calibration.dig_t1 as i32))
+        * ((raw_t >> 4) - (calibration.dig_t1 as i32)))
+        >> 12)
+        * (calibration.dig_t3 as i32))
+        >> 14;
     let t_fine = var1 + var2;
     let temp_c = ((t_fine * 5 + 128) >> 8) as f32 / 100.0;
 
     // Pressure compensation (64-bit precision)
     let mut p_var1 = (t_fine as i64) - 128000;
     let mut p_var2 = p_var1 * p_var1 * (calibration.dig_p6 as i64);
-    p_var2 = p_var2 + ((p_var1 * (calibration.dig_p5 as i64)) << 17);
-    p_var2 = p_var2 + ((calibration.dig_p4 as i64) << 35);
-    p_var1 = ((p_var1 * p_var1 * (calibration.dig_p3 as i64)) >> 8) + ((p_var1 * (calibration.dig_p2 as i64)) << 12);
+    p_var2 += (p_var1 * (calibration.dig_p5 as i64)) << 17;
+    p_var2 += (calibration.dig_p4 as i64) << 35;
+    p_var1 = ((p_var1 * p_var1 * (calibration.dig_p3 as i64)) >> 8)
+        + ((p_var1 * (calibration.dig_p2 as i64)) << 12);
     p_var1 = (((1i64 << 47) + p_var1) * (calibration.dig_p1 as i64)) >> 33;
 
     let mut pressure_hpa = 0.0;
@@ -102,7 +118,11 @@ where
 
     // Get calibration data
     let mut calibration_buf = [0u8; 24];
-    if i2c.write_read(ADDR, &[CALIB], &mut calibration_buf).await.is_err() {
+    if i2c
+        .write_read(ADDR, &[CALIB], &mut calibration_buf)
+        .await
+        .is_err()
+    {
         error!("Error reading from BMP280");
         return None;
     }
@@ -116,7 +136,6 @@ where
     }
 
     Some(calibration)
-
 }
 
 /// Main processing task
@@ -139,7 +158,7 @@ where
     Timer::after_millis(200).await;
 
     let mut settings = DYNAMIC_SETTINGS.receiver().unwrap();
-    
+
     let mut data_buf = [0u8; 6];
     loop {
         let result = {
@@ -150,8 +169,12 @@ where
         match result {
             Ok(_) => {
                 // Construct raw 20-bit values
-                let raw_p = ((data_buf[0] as i32) << 12) | ((data_buf[1] as i32) << 4) | ((data_buf[2] as i32) >> 4);
-                let raw_t = ((data_buf[3] as i32) << 12) | ((data_buf[4] as i32) << 4) | ((data_buf[5] as i32) >> 4);
+                let raw_p = ((data_buf[0] as i32) << 12)
+                    | ((data_buf[1] as i32) << 4)
+                    | ((data_buf[2] as i32) >> 4);
+                let raw_t = ((data_buf[3] as i32) << 12)
+                    | ((data_buf[4] as i32) << 4)
+                    | ((data_buf[5] as i32) >> 4);
 
                 // Apply math
                 let (temp_c, pressure_hpa) = compensate(raw_t, raw_p, &calibration);

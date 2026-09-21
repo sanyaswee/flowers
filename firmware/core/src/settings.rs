@@ -3,7 +3,6 @@
 /// ---
 /// Non-dynamic (hardcoded) settings
 /// ---
-
 /// Minimal cooldown between telemetry packets
 pub const TELEMETRY_SENDER_COOLDOWN_MS: u64 = 200;
 
@@ -14,7 +13,6 @@ pub const TELEMETRY_CHANNEL_SIZE: usize = 1024;
 /// ---
 /// Dynamic (server-adjustable) settings
 /// ---
-
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_sync::watch::Watch;
@@ -33,7 +31,7 @@ pub async fn settings_monitor() {
     let tx = DYNAMIC_SETTINGS.sender();
     // Initialize the default settings
     tx.send(NodeSettings::default());
-    
+
     loop {
         let new = OVERRIDE_SIG.wait().await;
         tx.send(new);

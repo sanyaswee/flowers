@@ -34,7 +34,8 @@ impl NodeTelemetryEntry {
         end: Option<NaiveDateTime>,
         limit: Option<i64>,
     ) -> Result<Vec<Self>, sqlx::Error> {
-        let start_ts = start.unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap().naive_utc());
+        let start_ts =
+            start.unwrap_or_else(|| DateTime::from_timestamp_millis(0).unwrap().naive_utc());
         let end_ts = end.unwrap_or_else(|| Utc::now().naive_utc());
         let limit = limit.unwrap_or(100);
         sqlx::query_as!(
@@ -58,15 +59,15 @@ impl NodeTelemetryEntry {
             end_ts,
             limit,
         )
-            .fetch_all(pool)
-            .await
+        .fetch_all(pool)
+        .await
     }
     /// Push new entry into the database
     pub async fn push(
         pool: &SqlitePool,
         node_id: &str,
         uptime: i64,
-        telemetry: NodeTelemetry
+        telemetry: NodeTelemetry,
     ) -> Result<Self, sqlx::Error> {
         let node = NodeEntry::from_node_id(pool, node_id).await?;
         assert!(node.is_some());
@@ -113,7 +114,8 @@ impl NodeTelemetryEntry {
                 let stamp = plant.measurement_stamp as i64;
                 if ChannelTelemetryEntry::is_new(pool, node_id, i as u8, stamp).await? {
                     println!("Updating telemetry");
-                    ChannelTelemetryEntry::push(pool, node_id, i as u8, stamp, plant.soil_moisture).await?;
+                    ChannelTelemetryEntry::push(pool, node_id, i as u8, stamp, plant.soil_moisture)
+                        .await?;
                 }
             }
         }

@@ -1,7 +1,7 @@
 //! Gathering all telemetry and sending it to the server
 
-use embassy_sync::mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_sync::mutex::Mutex;
 use embassy_time::Timer;
 
 use shared::telemetry::NodeTelemetry;
@@ -10,7 +10,7 @@ use defmt::info;
 
 use shared::packets::PacketPayload;
 
-use crate::network::channel::{create_packet, PACKET_CHANNEL};
+use crate::network::channel::{PACKET_CHANNEL, create_packet};
 use crate::network::priority::PriorityPacketWrapper;
 use crate::settings::DYNAMIC_SETTINGS;
 

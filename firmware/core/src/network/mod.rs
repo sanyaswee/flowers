@@ -1,26 +1,26 @@
 //! This module handles network operations
 
-mod router;
-pub mod status;
+pub(crate) mod channel;
 pub(crate) mod priority;
 pub mod provider;
-pub(crate) mod channel;
+mod router;
+pub mod status;
 
 use defmt::{error, info};
 
-use embassy_futures::select::{select, Either};
-use embassy_time::{Timer};
+use embassy_futures::select::{Either, select};
+use embassy_time::Timer;
 
 use heapless::String;
 
-use minimq::{Buffers, ConfigBuilder, Session, QoS, Publication};
+use minimq::{Buffers, ConfigBuilder, Publication, QoS, Session};
 
 use shared::mqtt_convention;
 use shared::packets::{Packet, PacketPayload};
 
-use provider::TcpProvider;
-use status::{NetworkStatus, NETWORK_STATUS};
 use channel::{PACKET_CHANNEL, push_boot};
+use provider::TcpProvider;
+use status::{NETWORK_STATUS, NetworkStatus};
 
 /// The MQTT task
 pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
@@ -35,7 +35,8 @@ pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
     let buffers = Buffers::new(&mut rx_buf, &mut tx_buf);
 
     let config = ConfigBuilder::new(buffers)
-        .client_id(client_id).unwrap()
+        .client_id(client_id)
+        .unwrap()
         .keepalive_interval(60);
     let mut session = Session::new(config);
 
@@ -87,22 +88,22 @@ pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                     let mut payload = [0u8; 512];
                     info!("Sending packet: {}", packet);
                     let ser = packet.serialize(&mut payload);
-                    match ser  {
+                    match ser {
                         Ok(len) => {
                             let mut topic: String<64> = String::new();
 
                             match packet.payload {
                                 PacketPayload::Telemetry(_) => {
                                     mqtt_convention::node_telemetry(&mut topic, client_id)
-                                },
+                                }
                                 PacketPayload::NodeBoot(_) => {
                                     mqtt_convention::node_boot(&mut topic, client_id)
-                                },
+                                }
                                 _ => unreachable!(),
                             };
 
-                            let publication = Publication::new(&topic, &payload[..len])
-                                .qos(QoS::AtMostOnce);
+                            let publication =
+                                Publication::new(&topic, &payload[..len]).qos(QoS::AtMostOnce);
 
                             if conn.publish(publication).await.is_err() {
                                 error!("Publication error!");
@@ -110,7 +111,7 @@ pub async fn mqtt_task<T: TcpProvider>(mut tcp: T, client_id: &str) {
                             }
 
                             info!("Packet sent");
-                        },
+                        }
                         Err(e) => {
                             error!("Serialization error: {}", e);
                         }

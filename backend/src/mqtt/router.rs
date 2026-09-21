@@ -14,7 +14,8 @@ use crate::db::entries::{NodeEntry, NodeTelemetryEntry};
 
 type BoxFuture = Pin<Box<dyn Future<Output = ()> + Send>>;
 
-pub type Handler = Arc<dyn Fn(String, Vec<u8>, Arc<AsyncClient>, SqlitePool) -> BoxFuture + Send + Sync>;
+pub type Handler =
+    Arc<dyn Fn(String, Vec<u8>, Arc<AsyncClient>, SqlitePool) -> BoxFuture + Send + Sync>;
 
 /// All active subscriptions: (filter, handler) pairs
 pub fn routes() -> Vec<(String, Handler)> {
@@ -51,7 +52,13 @@ pub async fn dispatch(
 ) {
     for (filter, handle) in routes {
         if topic_matches(filter, topic) {
-            handle(topic.to_string(), payload.to_vec(), client.clone(), pool.clone()).await;
+            handle(
+                topic.to_string(),
+                payload.to_vec(),
+                client.clone(),
+                pool.clone(),
+            )
+            .await;
             return;
         }
     }
@@ -84,9 +91,12 @@ pub async fn publish_boot(client: &Arc<AsyncClient>) {
     let res = packet.serialize(payload);
     match res {
         Ok(len) => {
-            match client.publish(topic, QoS::AtMostOnce, false, &payload[..len]).await {
+            match client
+                .publish(topic, QoS::AtMostOnce, false, &payload[..len])
+                .await
+            {
                 Ok(_) => println!("ServerBoot packet published"),
-                Err(e) => panic!("Failed to publish ServerBoot packet: {:?}", e)
+                Err(e) => panic!("Failed to publish ServerBoot packet: {:?}", e),
             }
         }
         Err(e) => {
@@ -97,7 +107,7 @@ pub async fn publish_boot(client: &Arc<AsyncClient>) {
 
 /// Helper function to override settings
 pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
-    let settings = entry.get_settings(&pool).await;
+    let settings = entry.get_settings(pool).await;
     if settings.is_err() {
         eprintln!("DB Error: {:?}", settings.err());
         return;
@@ -105,13 +115,16 @@ pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entr
     let settings = settings.unwrap();
 
     let mut t = String::new();
-    mqtt_convention::settings_override(&mut t, &*entry.node_id);
+    mqtt_convention::settings_override(&mut t, &entry.node_id);
 
     let p = NodePacket::new(0, PacketPayload::SettingsOverride(settings));
     let buf = &mut [0u8; 512];
 
     match p.serialize(buf) {
-        Ok(len) => match client.publish(t.clone(), QoS::AtMostOnce, false, &buf[..len]).await {
+        Ok(len) => match client
+            .publish(t.clone(), QoS::AtMostOnce, false, &buf[..len])
+            .await
+        {
             Ok(_) => println!("SettingsOverride packet published ({})", t),
             Err(e) => eprintln!("Failed to publish SettingsOverride packet: {:?}", e),
         },
@@ -127,13 +140,16 @@ pub async fn water_plant(client: Arc<AsyncClient>, entry: NodeEntry, channel_id:
     }
 
     let mut t = String::new();
-    mqtt_convention::water(&mut t, &*entry.node_id);
+    mqtt_convention::water(&mut t, &entry.node_id);
 
     let p = NodePacket::new(0, PacketPayload::Water(channel_id));
     let buf = &mut [0u8; 512];
 
     match p.serialize(buf) {
-        Ok(len) => match client.publish(t.clone(), QoS::AtMostOnce, false, &buf[..len]).await {
+        Ok(len) => match client
+            .publish(t.clone(), QoS::AtMostOnce, false, &buf[..len])
+            .await
+        {
             Ok(_) => println!("Water packet published ({})", t),
             Err(e) => eprintln!("Failed to publish Water packet: {:?}", e),
         },
@@ -142,21 +158,33 @@ pub async fn water_plant(client: Arc<AsyncClient>, entry: NodeEntry, channel_id:
 }
 
 /// Telemetry handler
-async fn handle_telemetry(topic: String, payload: Vec<u8>, _client: Arc<AsyncClient>, pool: SqlitePool) {
+async fn handle_telemetry(
+    topic: String,
+    payload: Vec<u8>,
+    _client: Arc<AsyncClient>,
+    pool: SqlitePool,
+) {
     let node_id = topic.split('/').nth(1).unwrap();
     match NodePacket::deserialize(&payload) {
         Ok(packet) => {
-            println!("Telemetry from {topic}:\n{packet:#?}") ;
+            println!("Telemetry from {topic}:\n{packet:#?}");
             match packet.payload {
                 PacketPayload::Telemetry(telemetry) => {
-                    match NodeTelemetryEntry::push(&pool, node_id, packet.header.uptime_ms as i64, telemetry).await {
-                        Ok(_) => {},
-                        Err(e) => eprintln!("Error pushing telemetry: {e}")
+                    match NodeTelemetryEntry::push(
+                        &pool,
+                        node_id,
+                        packet.header.uptime_ms as i64,
+                        telemetry,
+                    )
+                    .await
+                    {
+                        Ok(_) => {}
+                        Err(e) => eprintln!("Error pushing telemetry: {e}"),
                     };
                 }
-                _ => eprintln!("Invalid telemetry packet payload!")
+                _ => eprintln!("Invalid telemetry packet payload!"),
             }
-        },
+        }
         Err(err) => eprintln!("Failed to deserialize packet from {topic}: {err:?}"),
     }
 }
@@ -173,9 +201,9 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
                     return;
                 }
             };
-            
+
             let node_id = topic.split('/').nth(1).unwrap();
-            
+
             match NodeEntry::from_node_id(&pool, node_id).await {
                 // Node entry already exists
                 Ok(Some(mut entry)) => {
@@ -192,10 +220,12 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
 
                     override_settings(client, &pool, entry).await;
                 }
-                
+
                 // Node entry does not exist yet
                 Ok(None) => {
-                    let res = NodeEntry::push_default(&pool, node_id, packet.header.uptime_ms, config).await;
+                    let res =
+                        NodeEntry::push_default(&pool, node_id, packet.header.uptime_ms, config)
+                            .await;
                     if res.is_err() {
                         eprintln!("DB Error: {}", res.err().unwrap());
                         return;
@@ -205,11 +235,10 @@ async fn handle_boot(topic: String, payload: Vec<u8>, client: Arc<AsyncClient>, 
                     let entry = res.unwrap();
                     override_settings(client, &pool, entry).await;
                 }
-                
+
                 // faaah
                 Err(e) => {
                     eprintln!("DB error: {e}");
-                    return;
                 }
             };
         }

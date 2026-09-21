@@ -14,12 +14,14 @@ use panic_probe as _;
 
 use embassy_executor::Spawner;
 
-use embassy_rp::adc::{Adc, Config as AdcConfig, Channel as AdcChannel, InterruptHandler as AdcInterruptHandler};
+use embassy_rp::adc::{
+    Adc, Channel as AdcChannel, Config as AdcConfig, InterruptHandler as AdcInterruptHandler,
+};
 use embassy_rp::bind_interrupts;
-use embassy_rp::gpio::{Output, Level, Pull};
+use embassy_rp::gpio::{Level, Output, Pull};
 use embassy_rp::i2c::{Async, Config, I2c, InterruptHandler};
-use embassy_rp::peripherals;
 use embassy_rp::otp;
+use embassy_rp::peripherals;
 
 use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::mutex::Mutex;
@@ -61,7 +63,7 @@ async fn main(spawner: Spawner) {
         client_id_buf.clone(),
         2,
         WaterTankDetection::LevelDetection,
-        TelemetryCapabilities::new(true, false, true, true)
+        TelemetryCapabilities::new(true, false, true, true),
     );
 
     NODE_CONFIG.init(config).unwrap();
@@ -72,7 +74,8 @@ async fn main(spawner: Spawner) {
 
     let wifi_tr = wifi::init(
         spawner, p.PIO0, p.PIN_23, p.PIN_24, p.PIN_25, p.PIN_29, p.DMA_CH0,
-    ).await;
+    )
+    .await;
 
     if let Some(config) = wifi_tr.stack.config_v4() {
         let ip = config.address.address().octets();
@@ -118,5 +121,8 @@ async fn main(spawner: Spawner) {
     // Network tasks
     spawner.spawn(mqtt_network(wifi_tr, client_id_buf.as_str()).unwrap());
 
-    info!("Node initialized! Configuration: {}", NODE_CONFIG.get().await);
+    info!(
+        "Node initialized! Configuration: {}",
+        NODE_CONFIG.get().await
+    );
 }
