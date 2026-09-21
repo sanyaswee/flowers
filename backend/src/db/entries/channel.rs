@@ -15,6 +15,7 @@ pub struct ChannelEntry {
     pub verbose_name: Option<String>,
     pub enabled: bool,
     pub moisture_m_freq: u16,
+    pub watering_time: u16,
 }
 
 impl ChannelEntry {
@@ -26,7 +27,8 @@ impl ChannelEntry {
             SELECT
                 id, node_id, channel_id as "channel_id: u8",
                 verbose_name as "verbose_name: String", enabled as "enabled: bool",
-                moisture_m_freq as "moisture_m_freq: u16"
+                moisture_m_freq as "moisture_m_freq: u16",
+                watering_time as "watering_time: u16"
             FROM channels
             "#
         )
@@ -48,7 +50,8 @@ impl ChannelEntry {
                 channel_id as "channel_id: u8",
                 verbose_name as "verbose_name!: String",
                 enabled as "enabled: bool",
-                moisture_m_freq as "moisture_m_freq: u16"
+                moisture_m_freq as "moisture_m_freq: u16",
+                watering_time as "watering_time: u16"
             FROM channels
             WHERE node_id = ? AND channel_id = ?
             "#,
@@ -63,24 +66,27 @@ impl ChannelEntry {
     pub async fn push(pool: &SqlitePool, node_id: &str, idx: u8, settings: PlantSettings) -> Result<Self, sqlx::Error> {
         let channel_id = idx as i64;
         let moisture_m_freq = settings.moisture_m_freq_s as i64;
+        let watering_time = settings.watering_time_s as i64;
 
         sqlx::query_as!(
             ChannelEntry,
             r#"
-            INSERT INTO channels (node_id, channel_id, enabled, moisture_m_freq)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO channels (node_id, channel_id, enabled, moisture_m_freq, watering_time)
+            VALUES (?, ?, ?, ?, ?)
             RETURNING
                 id as "id!: i64",
                 node_id as "node_id!: String",
                 channel_id as "channel_id!: u8",
                 verbose_name as "verbose_name!: String",
                 enabled as "enabled!: bool",
-                moisture_m_freq as "moisture_m_freq!: u16"
+                moisture_m_freq as "moisture_m_freq!: u16",
+                watering_time as "watering_time!: u16"
             "#,
             node_id,
             channel_id,
             settings.enabled,
             moisture_m_freq,
+            watering_time,
         )
             .fetch_one(pool)
             .await

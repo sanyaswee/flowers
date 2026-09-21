@@ -62,6 +62,9 @@ pub struct PlantSettings {
     /// Soil moisture measurement frequency in seconds
     /// All time values in embassy are u64, but here we shrink it to u16 for packet size optimization
     pub moisture_m_freq_s: u16,
+
+    /// Watering time (s)
+    pub watering_time_s: u16,
 }
 
 impl Default for PlantSettings {
@@ -69,6 +72,7 @@ impl Default for PlantSettings {
         Self {
             enabled: false,
             moisture_m_freq_s: 60 * 10, // 10 minutes
+            watering_time_s: 5,
         }
     }
 }

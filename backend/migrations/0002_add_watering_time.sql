@@ -1,0 +1,2 @@
+ALTER TABLE channels
+    ADD COLUMN watering_time INTEGER NOT NULL DEFAULT 5;
