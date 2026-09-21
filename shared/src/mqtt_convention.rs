@@ -1,6 +1,6 @@
 //! MQTT communication topics
 //!
-//! We don't use `String` here because this crate is used by `no_std` firmware
+//! We use `impl Write` instead of `String` here because this crate is used by `no_std` firmware
 
 use core::fmt::Write;
 
@@ -25,4 +25,10 @@ pub fn server_boot(buf: &mut impl Write) {
 /// Published by server
 pub fn settings_override(buf: &mut impl Write, node_id: &str) {
     write!(buf, "override/{}", node_id).unwrap();
+}
+
+/// Water the plant on the channel
+/// Published by server
+pub fn water(buf: &mut impl Write, node_id: &str) {
+    write!(buf, "water/{}", node_id).unwrap();
 }

@@ -1,6 +1,6 @@
 //! Abstract and scalable plant channels
 
-use defmt::error;
+use defmt::{error, info};
 
 use embassy_futures::join::join;
 
@@ -20,7 +20,7 @@ use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
 
 /// Watering signals array
-static WATERING_SIGNALS:
+pub static WATERING_SIGNALS:
     [Signal<CriticalSectionRawMutex, ()>; MAX_PLANT_CHANNELS] = [const { Signal::new() }; MAX_PLANT_CHANNELS];
 
 /// Monitor and report soil moisture
@@ -96,6 +96,7 @@ async fn water_on_signal<P: OutputPin>(idx: usize, mut pump_pin: P) {
         WATERING_SIGNALS[idx].wait().await;
 
         // Water
+        info!("Watering channel {}", idx);
         pump_pin.set_high().unwrap();
         let duration = current_settings.plant_settings[idx].watering_time_s as u64;
         Timer::after_secs(duration).await;
