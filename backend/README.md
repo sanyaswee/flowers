@@ -1,5 +1,6 @@
 # Backend Server
-The server for handling data and controlling the nodes
+The server for handling data and controlling the nodes.
+It exposes HTTP endpoints used for interaction with the nodes. The documentation is available on [localhost:3000/docs](localhost:3000/docs)
 
 ## Requirements
 You should have the MQTT broker like `mosquitto` to be running
