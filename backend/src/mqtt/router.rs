@@ -106,6 +106,7 @@ pub async fn publish_boot(client: &Arc<AsyncClient>) {
 }
 
 /// Helper function to override settings
+/// TODO fix failed to serialize
 pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
     let settings = entry.get_settings(pool).await;
     if settings.is_err() {
@@ -118,7 +119,7 @@ pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entr
     mqtt_convention::settings_override(&mut t, &entry.node_id);
 
     let p = NodePacket::new(0, PacketPayload::SettingsOverride(settings));
-    let buf = &mut [0u8; 512];
+    let buf = &mut [0u8; 768];
 
     match p.serialize(buf) {
         Ok(len) => match client

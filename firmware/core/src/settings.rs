@@ -27,7 +27,7 @@ use shared::node_settings::NodeSettings;
 /// The result is obvious - HardFault in runtime. Even more funny part - this watch was my first suspect,
 /// But since several days have passed I assumed I added 1 extra receiver, not 2.
 /// I bumped the watch to 6, but the HardFault did not disappear. So I thought the issue was the packet channel,
-/// since `Packet` size in bytes more then doubled after I added new settings and watering packets.
+/// since `Packet` size in bytes more than doubled after I added new settings and watering packets.
 /// Result -> midnight debugging, headache, and nothing fixed the issue.
 /// I gave up, opened Claude, gave it the link to the repo, put the effort to high...
 /// ...just for it to tell me that I can't count
