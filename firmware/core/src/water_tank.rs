@@ -58,7 +58,7 @@ pub async fn read_level<ADC, PIN, Word, P>(
             }
         };
         power_pin.set_low().unwrap();
-        
+
         // Wait until a pump operation
         MEASURE_TANK_SIG.wait().await;
         Timer::after_secs(5).await; // wait for water to calm down
