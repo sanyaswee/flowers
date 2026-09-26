@@ -18,6 +18,7 @@ use shared::telemetry::PlantTelemetry;
 use crate::adc::AdcProvider;
 use crate::settings::DYNAMIC_SETTINGS;
 use crate::telemetry::TELEMETRY;
+use crate::water_tank::MEASURE_TANK_SIG;
 
 /// Watering signals array
 pub static WATERING_SIGNALS: [Signal<CriticalSectionRawMutex, ()>; MAX_PLANT_CHANNELS] =
@@ -101,6 +102,9 @@ async fn water_on_signal<P: OutputPin>(idx: usize, mut pump_pin: P) {
         let duration = current_settings.plant_settings[idx].watering_time_s as u64;
         Timer::after_secs(duration).await;
         pump_pin.set_low().unwrap();
+
+        // Measure the new tank level
+        MEASURE_TANK_SIG.signal(());
     }
 }
 

@@ -106,7 +106,6 @@ pub async fn publish_boot(client: &Arc<AsyncClient>) {
 }
 
 /// Helper function to override settings
-/// TODO fix failed to serialize
 pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entry: NodeEntry) {
     let settings = entry.get_settings(pool).await;
     if settings.is_err() {
