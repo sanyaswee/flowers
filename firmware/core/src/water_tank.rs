@@ -2,15 +2,18 @@
 
 use defmt::error;
 
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex};
 use embassy_sync::mutex::Mutex;
-
+use embassy_sync::signal::Signal;
 use embassy_time::Timer;
 
 use embedded_hal::digital::OutputPin;
 
 use crate::adc::AdcProvider;
 use crate::telemetry::TELEMETRY;
+
+/// Signal that pump sends after watering operation
+pub(crate) static MEASURE_TANK_SIG: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
 /// Read the water tank level
 pub async fn read_level<ADC, PIN, Word, P>(
@@ -55,6 +58,9 @@ pub async fn read_level<ADC, PIN, Word, P>(
             }
         };
         power_pin.set_low().unwrap();
-        Timer::after_secs(20).await; // TODO later sleep until pump operation
+        
+        // Wait until a pump operation
+        MEASURE_TANK_SIG.wait().await;
+        Timer::after_secs(5).await; // wait for water to calm down
     }
 }
