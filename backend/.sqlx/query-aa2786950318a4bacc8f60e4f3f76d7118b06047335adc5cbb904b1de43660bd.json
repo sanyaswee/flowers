@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE channels SET watering_time = ? WHERE node_id = ? AND channel_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "aa2786950318a4bacc8f60e4f3f76d7118b06047335adc5cbb904b1de43660bd"
+}

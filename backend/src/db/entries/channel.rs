@@ -115,6 +115,7 @@ impl ChannelEntry {
         let mut s = PlantSettings::default();
         s.enabled = self.enabled;
         s.moisture_m_freq_s = self.moisture_m_freq;
+        s.watering_time_s = self.watering_time;
         s
     }
 
@@ -190,6 +191,28 @@ impl ChannelEntry {
         Ok(())
     }
 
+    /// Set watering time
+    pub async fn set_watering_time(
+        &mut self,
+        pool: &SqlitePool,
+        value: u16,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            r#"
+            UPDATE channels SET watering_time = ? WHERE node_id = ? AND channel_id = ?
+            "#,
+            value,
+            self.node_id,
+            self.channel_id,
+        )
+        .execute(pool)
+        .await?;
+
+        self.watering_time = value;
+
+        Ok(())
+    }
+
     /// Set settings (PlantSettings)
     pub async fn set_settings(
         &mut self,
@@ -198,6 +221,8 @@ impl ChannelEntry {
     ) -> Result<(), sqlx::Error> {
         self.set_enable(pool, settings.enabled).await?;
         self.set_moisture_m_freq(pool, settings.moisture_m_freq_s)
+            .await?;
+        self.set_watering_time(pool, settings.watering_time_s)
             .await?;
 
         Ok(())
