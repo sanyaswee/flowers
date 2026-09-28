@@ -7,10 +7,18 @@ The system is scalable and is based on "nodes". Each node is a chip that control
 In theory, the system doesn't care about the number of nodes, the limit comes from Wi-Fi itself, whose theoretical limit is 253 devices.
 Unless you grow ~~weed~~ something on an industrial scale, you will never hit it
 
+## Architecture
+The system consists of "nodes", each node has several plants (aka channels) connected to it. 
+Nodes are managed by a backend server and communicate with it using the [MQTT protocol](https://en.wikipedia.org/wiki/MQTT).
+When the node boots, it publishes the boot packet and reports it hardware capabilities. If the node is recognized by the server it responds with a packet that contains its settings, 
+if not, the server registers new node with the default settings.
+The firmware consists of abstract `core` and the node implementations that are based on it. With that strategy adding new node version requires just implementing some traits and spawning tasks. 
+The backend server also exposes some HTTP endpoints for checking the data and controlling the nodes, intended for building frontend app in the future
+
 ## Current stage & Milestones
 For now, this project is in the MVP stage. The major milestones are:
 1. Build a web frontend with UI for controlling the server and nodes
-2. Introduce ACK packets for settings overrides and other types
+2. Introduce ACK / Ping packets in order to track node status
 3. Add automated watering based on configured threshold
 4. Consider switching to binary transfers instead of JSON packets
 5. Migrate from SQLite to MySQL or PostgreSQL
