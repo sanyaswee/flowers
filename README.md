@@ -17,7 +17,7 @@ The backend server also exposes some HTTP endpoints for checking the data and co
 
 ## Current stage & Milestones
 For now, this project is in the MVP stage. The major milestones are:
-1. Build a web frontend with UI for controlling the server and nodes
+1. ~~Build a web frontend with UI for controlling the server and nodes~~
 2. Introduce ACK / Ping packets in order to track node status
 3. Add automated watering based on configured threshold
 4. Consider switching to binary transfers instead of JSON packets
