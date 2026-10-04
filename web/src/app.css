@@ -1,0 +1,217 @@
+/*
+  Design tokens.
+  Chart/series colors are the validated categorical palette (blue, orange, aqua, yellow, magenta, violet),
+  one fixed hue per measurement so a color always means the same thing across every chart.
+*/
+:root {
+  color-scheme: light dark;
+
+  --font: 'Bricolage Grotesque Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --bg: #e8ede7;
+  --plate: #fbfcfa;
+  --ink: #13201a;
+  --ink-2: #44514a;
+  --ink-3: #66736b;
+  --rule: #c9d3ca;
+  --grid: #dde4dd;
+  --wash: rgba(19, 32, 26, 0.05);
+
+  --water: #2a78d6;
+  --water-strong: #1c5cab;
+  --water-track: #cde2fb;
+  --focus: #2a78d6;
+
+  --good: #006300;
+  --warn: #8a5600;
+  --bad: #b3261e;
+
+  --c-moisture: #2a78d6;
+  --c-temperature: #eb6834;
+  --c-humidity: #e87ba4;
+  --c-pressure: #4a3aa7;
+  --c-light: #eda100;
+  --c-tank: #1baf7a;
+
+  --radius: 10px;
+  --gutter: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1411;
+    --plate: #171d19;
+    --ink: #eaf0eb;
+    --ink-2: #b5c0b8;
+    --ink-3: #8c9891;
+    --rule: #2a332d;
+    --grid: #232b26;
+    --wash: rgba(234, 240, 235, 0.06);
+
+    --water: #3987e5;
+    --water-strong: #2a78d6;
+    --water-track: #123a6b;
+    --focus: #6da7ec;
+
+    --good: #0ca30c;
+    --warn: #fab219;
+    --bad: #ec7a72;
+
+    --c-moisture: #3987e5;
+    --c-temperature: #d95926;
+    --c-humidity: #d55181;
+    --c-pressure: #9085e9;
+    --c-light: #c98500;
+    --c-tank: #199e70;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.5rem);
+}
+h2 {
+  font-size: 1.375rem;
+}
+h3 {
+  font-size: 1.0625rem;
+}
+
+a {
+  color: var(--water-strong);
+  text-underline-offset: 3px;
+}
+@media (prefers-color-scheme: dark) {
+  a {
+    color: var(--focus);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+.small {
+  font-size: 0.875rem;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--plate);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 560;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.12s;
+}
+.btn:hover:not(:disabled) {
+  background: var(--wash);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn.primary {
+  background: var(--water-strong);
+  border-color: var(--water-strong);
+  color: #fff;
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--water);
+  border-color: var(--water);
+}
+.btn.quiet {
+  background: transparent;
+  border-color: transparent;
+}
+.btn.quiet:hover:not(:disabled) {
+  background: var(--wash);
+}
+
+/* Inputs */
+.input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--plate);
+  color: var(--ink);
+  font: inherit;
+}
+.input[aria-invalid='true'] {
+  border-color: var(--bad);
+}
+
+/* Page frame */
+.page {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

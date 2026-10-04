@@ -9,5 +9,5 @@ firmware/secrets/*
 
 # Database
 .env
-backend/flowers.db
-backend/flowers.db-*
+*.db
+*.db-*
