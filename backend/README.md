@@ -37,4 +37,4 @@ cargo run --release
 ```
 
 ### SQLite note
-Due to relative sqlite paths, there is a difference between `cargo run -p backend` from project root and `cargo run` here. See #12
+Due to relative sqlite paths, there is a difference between `cargo run -p backend` from project root and `cargo run` here. See [#12](https://github.com/sanyaswee/flowers/issues/12)
