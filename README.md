@@ -25,11 +25,12 @@ For now, this project is in the MVP stage. The major milestones are:
 6. Add another node type (probably ESP32)
 7. Develop a CLI app for managing the nodes
 8. Develop a mobile app on the same API endpoints as a web app
-9. Fix all current issues
+9. Feature gate parts of the `core` crate so that different implemetations only get what they need
+10. Create a virtual node for testing and development purposes
+11. Fix all current issues
 
-## Requirements
-To function properly, this project needs a simple home server to be up and running and connected to the same network as the nodes. 
-Some functionality may work without it, but configuring nodes requires action from the server
+## Deployment requirements
+To function properly, this project needs a simple home server to be up and running and connected to the same network as the nodes. There is no need for a fancy homelab (tho this project could be a nice part of its infrastructure), an old Android phone could actully run the server.
 
 ## Setup instructions
 For the server, you just need to [install some dependencies](/backend/README.md) and `cargo run` the `backend` directory on the host machine, and for the firmware you'll find the instructions for a particular node type in `firmware/nodes/<your_node>`
