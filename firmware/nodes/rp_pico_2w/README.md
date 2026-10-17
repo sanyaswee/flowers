@@ -15,6 +15,9 @@ The main limitation of this node is that there are only 3 ADC peripherals onboar
 ![Schematic](schematic.svg)
 *Schematic note: GND represents the board ground, GND1 is the power soucre ground*
 
+## Assembly example
+![example](assembly.jpg)
+
 ## Flashing
 ### Wi-Fi credentials
 Before flashing this node, create the `firmware/secrets/` directory, and provide there the Wi-Fi credentials.
