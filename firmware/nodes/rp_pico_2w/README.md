@@ -43,11 +43,26 @@ First of all, you should build the binary:
 cargo build --release
 ```
 After that, you should locate the compiled binary file at `.target/thumbv8m.main-none-eabihf/release`. 
-It would not have any extension, so picotool might not recognize it throw an error, if you try to load it. Manually add the `.elf` extention to the compiled binary. Connect the USB cable to the board and then connect to your machine while holding the `bootsel` button. Now go back to the terminal and run:
+It would not have any extension, so picotool might not recognize it and throw an error, if you try to load it. Manually add the `.elf` extention to the compiled binary. Connect the USB cable to the board and then connect to your machine while holding the `bootsel` button. Now go back to the terminal and run:
 ```
 picotool load -x ../../target/thumbv8m.main-none-eabihf/release/rp-pico-2w.elf
 ```
 Alternatively, you can just drag-and-drop the renamed binary to the board.
 
 ## Full hardware list
-TODO
+| Qty | Component                   | Clarification     |
+|-----|-----------------------------|-------------------|
+| 1   | RP Pico 2W                  | N/A               |
+| 1   | [BMP280](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp280-ds001.pdf) | Temperature / Pressure sensor |
+| 1   | [BH1750FVI](https://www.alldatasheet.com/datasheet-pdf/view/338083/ROHM/BH1750FVI.html) | Light intensity sensor |
+| 1   | Analog water level sensor   | N/A |
+| 1   | Water containter            | N/A |
+| 2   | Submersible water pump      | N/A |
+| 2   | Tube for watering           | N/A |
+| 2   | HW548 Mosfet                | Mosfet gates for pumps |
+| 2   | N4007 diode                 | Flyback diodes for the pumps |
+| 2   | Analog soil moisture sensor | N/A |
+| 1   | Red LED                     | Network error indicator |
+| 1   | 220 Ohm resistor            | LED protection |
+| 1   | Wall => 3V-5V DC adapter    | Power supply for the motors (dev/debug stage), or for entire system (deploy stage) |
+| ?   | Wires and breadboard        | N/A |
