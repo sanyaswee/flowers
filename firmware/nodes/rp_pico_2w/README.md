@@ -13,6 +13,7 @@ The main limitation of this node is that there are only 3 ADC peripherals onboar
 
 ## Schematics
 ![Schematic](schematic.svg)
+*Schematic note: GND represents the board ground, GND1 is the power soucre ground*
 
 ## Flashing
 ### Wi-Fi credentials
@@ -23,22 +24,27 @@ Before flashing this node, create the `firmware/secrets/` directory, and provide
 2. `password.txt` => Wi-Fi password
 3. `ssid.txt` => Wi-Fi SSID (network name)
 
-In order to get the server IP, on server's host-machine run:
-#### Linux
-Run: 
-```
-hostname -I
-```
-The first IP address is the one you need
+**Hint:** *Use `hostname -I` on Linux to see your IP address on the local network*
 
 ### Using the Debug Probe
 If you have the debug probe connected just run the following in this directory:
 ```
 cargo run --release
 ```
+It would authomatically flash the board for you
 
 ### Using picotool (no debug probe)
-TODO
+This one is a bit more tricky, but very usefull for updating already deployed nodes. 
+First of all, you should build the binary:
+```
+cargo build --release
+```
+After that, you should locate the compiled binary file at `.target/thumbv8m.main-none-eabihf/release`. 
+It would not have any extension, so picotool might not recognize it throw an error, if you try to load it. Manually add the `.elf` extention to the compiled binary. Connect the USB cable to the board and then connect to your machine while holding the `bootsel` button. Now go back to the terminal and run:
+```
+picotool load -x ../../target/thumbv8m.main-none-eabihf/release/rp-pico-2w.elf
+```
+Alternatively, you can just drag-and-drop the renamed binary to the board.
 
 ## Full hardware list
 TODO

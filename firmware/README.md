@@ -1,6 +1,3 @@
-# Firmware
-This directory contains all firmware for the nodes
-
 ## Directory documentation
 ### core
 This crate contains chip-independent firmware that is shared by all nodes
