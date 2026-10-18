@@ -43,9 +43,9 @@ First of all, you should build the binary:
 cargo build --release
 ```
 After that, you should locate the compiled binary file at `.target/thumbv8m.main-none-eabihf/release`. 
-It would not have any extension, so picotool might not recognize it and throw an error, if you try to load it. Manually add the `.elf` extention to the compiled binary. Connect the USB cable to the board and then connect to your machine while holding the `bootsel` button. Now go back to the terminal and run:
+It would not have any extension, so picotool might not recognize it and throw an error, if you try to load it. Manually add the `.elf` extention to the compiled binary. Connect the USB cable to the board and then connect to your machine while holding the `BOOTSEL` button. Now go back to the terminal and run:
 ```
-picotool load -x ../../target/thumbv8m.main-none-eabihf/release/rp-pico-2w.elf
+picotool load -x ../../../target/thumbv8m.main-none-eabihf/release/rp-pico-2w.elf
 ```
 Alternatively, you can just drag-and-drop the renamed binary to the board.
 
