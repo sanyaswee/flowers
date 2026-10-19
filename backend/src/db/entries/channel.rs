@@ -6,6 +6,13 @@ use utoipa::ToSchema;
 
 use shared::node_settings::PlantSettings;
 
+/// Auto watering type enum
+#[derive(Serialize, ToSchema)]
+pub enum AutoWateringType {
+    IntervalBased = 0,
+    ThresholdBased = 1,
+}
+
 /// `channels` table
 #[derive(Serialize, ToSchema)]
 pub struct ChannelEntry {
@@ -16,6 +23,10 @@ pub struct ChannelEntry {
     pub enabled: bool,
     pub moisture_m_freq: u16,
     pub watering_time: u16,
+    pub auto_watering_enable: bool,
+    pub auto_watering_type: AutoWateringType,
+    pub auto_watering_interval: u16,
+    pub auto_watering_threshold: u8,
 }
 
 impl ChannelEntry {
@@ -28,7 +39,11 @@ impl ChannelEntry {
                 id, node_id, channel_id as "channel_id: u8",
                 verbose_name as "verbose_name: String", enabled as "enabled: bool",
                 moisture_m_freq as "moisture_m_freq: u16",
-                watering_time as "watering_time: u16"
+                watering_time as "watering_time: u16",
+                auto_watering_enable as "auto_watering_enable: bool",
+                auto_watering_type as "auto_watering_type: AutoWateringType",
+                auto_watering_interval as "auto_watering_interval: u16",
+                auto_watering_threshold as "auto_watering_threshold: u16"
             FROM channels
             "#
         )
