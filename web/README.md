@@ -1,11 +1,12 @@
 # Web App
 
-Dashboard for the Flowers nodes: live soil moisture, water tank and climate readings, manual watering, per-channel and per-node settings, and history charts. Built with Svelte 5, Vite and TypeScript
+Dashboard for the nodes: soil moisture, water tank and climate readings, manual watering, per-channel and per-node settings, and history charts
 
 ## Running
 
-The backend sends no CORS headers and doesn't serve static files, so the browser has to reach `/api` through the same origin as the app. Vite proxies `/api` to the backend
+The backend sends no CORS headers and doesn't serve static files, so the browser has to reach `/api` through the same origin as the app. Vite proxies `/api` to the backend.
 
+### Debian/Ubuntu
 ```sh
 cd web
 npm install
@@ -22,6 +23,14 @@ The backend is expected at `http://127.0.0.1:3000`. If it runs elsewhere:
 
 ```sh
 FLOWERS_BACKEND=http://192.168.1.20:3000 npm run preview
+```
+
+### Android/Termux
+Assuming you've already installed `npm` and `pm2` while setting up [backend](../backend/README.md):
+```sh
+cd web
+npm install
+pm2 start npm --name "flowers-web" -- run dev -- --host
 ```
 
 ## Layout
