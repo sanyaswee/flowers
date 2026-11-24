@@ -7,9 +7,13 @@ use utoipa::ToSchema;
 use shared::node_settings::PlantSettings;
 
 /// Auto watering type enum
-#[derive(Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema, sqlx::Type)]
+#[repr(i64)]
 pub enum AutoWateringType {
+    /// Every x minutes
     IntervalBased = 0,
+
+    /// TODO: use only after calibration patches
     ThresholdBased = 1,
 }
 
@@ -43,7 +47,7 @@ impl ChannelEntry {
                 auto_watering_enable as "auto_watering_enable: bool",
                 auto_watering_type as "auto_watering_type: AutoWateringType",
                 auto_watering_interval as "auto_watering_interval: u16",
-                auto_watering_threshold as "auto_watering_threshold: u16"
+                auto_watering_threshold as "auto_watering_threshold: u8"
             FROM channels
             "#
         )
@@ -70,7 +74,11 @@ impl ChannelEntry {
                 verbose_name as "verbose_name!: String",
                 enabled as "enabled: bool",
                 moisture_m_freq as "moisture_m_freq: u16",
-                watering_time as "watering_time: u16"
+                watering_time as "watering_time: u16",
+                auto_watering_enable as "auto_watering_enable: bool",
+                auto_watering_type as "auto_watering_type: AutoWateringType",
+                auto_watering_interval as "auto_watering_interval: u16",
+                auto_watering_threshold as "auto_watering_threshold: u8"
             FROM channels
             WHERE node_id = ? AND channel_id = ?
             "#,
@@ -104,7 +112,11 @@ impl ChannelEntry {
                 verbose_name as "verbose_name!: String",
                 enabled as "enabled!: bool",
                 moisture_m_freq as "moisture_m_freq!: u16",
-                watering_time as "watering_time!: u16"
+                watering_time as "watering_time!: u16",
+                auto_watering_enable as "auto_watering_enable: bool",
+                auto_watering_type as "auto_watering_type: AutoWateringType",
+                auto_watering_interval as "auto_watering_interval: u16",
+                auto_watering_threshold as "auto_watering_threshold: u8"
             "#,
             node_id,
             channel_id,
