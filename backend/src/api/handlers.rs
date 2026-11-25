@@ -447,11 +447,10 @@ pub async fn water_channel(
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
-    if water_plant(state.mqtt_client, node, channel_id).await {
-        if let Err(e) = channel.mark_watered(&state.pool).await {
+    if water_plant(state.mqtt_client, node, channel_id).await
+        && let Err(e) = channel.mark_watered(&state.pool).await {
             eprintln!("Failed to save the watering time of {node_id}/{channel_id}: {e}");
         }
-    }
 
     Ok(StatusCode::OK)
 }
