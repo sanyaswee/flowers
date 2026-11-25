@@ -56,7 +56,20 @@ export interface NodeEntry {
   last_active: ServerTime
 }
 
-export interface ChannelEntry {
+/** Only IntervalBased is run by the server for now; ThresholdBased waits for moisture calibration. */
+export type AutoWateringType = 'IntervalBased' | 'ThresholdBased'
+
+/** Server-side only: the node never sees these. Set with POST .../auto-watering */
+export interface AutoWateringSettings {
+  auto_watering_enable: boolean
+  auto_watering_type: AutoWateringType
+  /** Minutes (1..=65535). Counted from the last watering, manual ones included. IntervalBased only. */
+  auto_watering_interval: number
+  /** Soil moisture, % (0..=100). ThresholdBased only, so currently unused. */
+  auto_watering_threshold: number
+}
+
+export interface ChannelEntry extends AutoWateringSettings {
   id: number
   node_id: string
   channel_id: number
@@ -64,6 +77,8 @@ export interface ChannelEntry {
   enabled: boolean
   moisture_m_freq: number
   watering_time: number
+  /** When a water command was last sent (manual or automatic). null = never */
+  last_watered: ServerTime | null
 }
 
 /** Rows come back newest first. Units: temperature °C, pressure hPa, light lux, humidity and tank level %. */

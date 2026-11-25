@@ -43,6 +43,7 @@ Please verify them with "Try it out" button or take a look at the source code.
         disable_channel,
         set_node_settings,
         set_channel_settings,
+        set_channel_auto_watering,
         water_channel
     ),
     components(
@@ -56,6 +57,7 @@ Please verify them with "Try it out" button or take a look at the source code.
             // API payloads and filters
             VerboseNamePayload,
             TelemetryFilter,
+            AutoWateringSettings,
 
             // Shared settings models
             NodeSettings,
@@ -110,6 +112,10 @@ pub fn app(state: AppState) -> Router {
         .route(
             "/api/nodes/{node_id}/channels/{channel_id}/settings",
             post(set_channel_settings),
+        )
+        .route(
+            "/api/nodes/{node_id}/channels/{channel_id}/auto-watering",
+            post(set_channel_auto_watering),
         )
         .route(
             "/api/nodes/{node_id}/channels/{channel_id}/water",

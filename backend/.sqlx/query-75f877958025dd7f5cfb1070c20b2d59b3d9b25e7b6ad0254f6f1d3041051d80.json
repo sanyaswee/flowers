@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE channels SET\n                auto_watering_enable = ?,\n                auto_watering_type = ?,\n                auto_watering_interval = ?,\n                auto_watering_threshold = ?\n            WHERE node_id = ? AND channel_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "75f877958025dd7f5cfb1070c20b2d59b3d9b25e7b6ad0254f6f1d3041051d80"
+}

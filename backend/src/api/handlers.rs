@@ -11,7 +11,9 @@ use utoipa::{IntoParams, ToSchema};
 use shared::node_settings::{NodeSettings, PlantSettings};
 
 use crate::api::AppState;
-use crate::db::entries::{ChannelEntry, ChannelTelemetryEntry, NodeEntry, NodeTelemetryEntry};
+use crate::db::entries::{
+    AutoWateringSettings, ChannelEntry, ChannelTelemetryEntry, NodeEntry, NodeTelemetryEntry,
+};
 use crate::mqtt::router::{override_settings, water_plant};
 
 #[derive(Deserialize, ToSchema, IntoParams)]
@@ -379,6 +381,44 @@ pub async fn set_channel_settings(
 
 #[utoipa::path(
     post,
+    path = "/api/nodes/{node_id}/channels/{channel_id}/auto-watering",
+    request_body = AutoWateringSettings,
+    params(
+        ("node_id" = String, Path, description = "The ID of the node"),
+        ("channel_id" = u8, Path, description = "The ID of the channel")
+    ),
+    responses(
+        (status = 200, description = "Auto watering settings updated successfully"),
+        (status = 404, description = "Node or Channel not found"),
+        (status = 422, description = "Invalid auto watering settings"),
+        (status = 500, description = "Database error")
+    )
+)]
+pub async fn set_channel_auto_watering(
+    State(state): State<AppState>,
+    Path((node_id, channel_id)): Path<(String, u8)>,
+    Json(settings): Json<AutoWateringSettings>,
+) -> Result<StatusCode, StatusCode> {
+    let mut channel = match ChannelEntry::from_node(&state.pool, &node_id, channel_id).await {
+        Ok(Some(channel)) => channel,
+        Ok(None) => return Err(StatusCode::NOT_FOUND),
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    if let Err(reason) = settings.validate() {
+        eprintln!("Rejected auto watering settings for {node_id}/{channel_id}: {reason}");
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    // NOTE: Auto watering is server only, nothing is sent to the node
+    match channel.set_auto_watering(&state.pool, settings).await {
+        Ok(_) => Ok(StatusCode::OK),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+#[utoipa::path(
+    post,
     path = "/api/nodes/{node_id}/channels/{channel_id}/water",
     params(
         ("node_id" = String, Path, description = "The ID of the node"),
@@ -401,13 +441,17 @@ pub async fn water_channel(
     };
 
     // Verify the channel actually exists in the database
-    let _channel = match ChannelEntry::from_node(&state.pool, &node_id, channel_id).await {
+    let mut channel = match ChannelEntry::from_node(&state.pool, &node_id, channel_id).await {
         Ok(Some(channel)) => channel,
         Ok(None) => return Err(StatusCode::NOT_FOUND),
         Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
     };
 
-    water_plant(state.mqtt_client, node, channel_id).await;
+    if water_plant(state.mqtt_client, node, channel_id).await
+        && let Err(e) = channel.mark_watered(&state.pool).await
+    {
+        eprintln!("Failed to save the watering time of {node_id}/{channel_id}: {e}");
+    }
 
     Ok(StatusCode::OK)
 }

@@ -133,10 +133,14 @@ pub async fn override_settings(client: Arc<AsyncClient>, pool: &SqlitePool, entr
 }
 
 /// Water the channel
-pub async fn water_plant(client: Arc<AsyncClient>, entry: NodeEntry, channel_id: u8) {
+///
+/// NOTE:
+/// Returns `true` if the packet was handed over to the MQTT client
+/// Since there is no ACK packets yet, there is no guarantee that the packet arrived
+pub async fn water_plant(client: Arc<AsyncClient>, entry: NodeEntry, channel_id: u8) -> bool {
     if channel_id >= entry.n_channels {
         eprintln!("Invalid channel ID!");
-        return;
+        return false;
     }
 
     let mut t = String::new();
@@ -150,11 +154,20 @@ pub async fn water_plant(client: Arc<AsyncClient>, entry: NodeEntry, channel_id:
             .publish(t.clone(), QoS::AtMostOnce, false, &buf[..len])
             .await
         {
-            Ok(_) => println!("Water packet published ({})", t),
-            Err(e) => eprintln!("Failed to publish Water packet: {:?}", e),
+            Ok(_) => {
+                println!("Water packet published ({})", t);
+                true
+            }
+            Err(e) => {
+                eprintln!("Failed to publish Water packet: {:?}", e);
+                false
+            }
         },
-        Err(e) => eprintln!("Failed to serialize Water packet: {:?}", e),
-    };
+        Err(e) => {
+            eprintln!("Failed to serialize Water packet: {:?}", e);
+            false
+        }
+    }
 }
 
 /// Telemetry handler

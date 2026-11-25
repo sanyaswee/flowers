@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte'
+  import { fmtDuration } from '../format'
   import { U16_MAX } from '../types'
 
   interface Props {
@@ -11,6 +12,8 @@
     hint?: string
     min?: number
     max?: number
+    /** Seconds. The value must be a multiple of this, e.g. 60 when the server stores whole minutes */
+    step?: number
     units?: ('s' | 'min' | 'h')[]
     /** Bump this number to make the field drop any half-typed text and show `value` again */
     resetSignal?: number
@@ -23,6 +26,7 @@
     hint,
     min = 1,
     max = U16_MAX,
+    step = 1,
     units = ['s', 'min', 'h'],
     resetSignal = 0,
   }: Props = $props()
@@ -43,15 +47,18 @@
 
   const seconds = $derived(Math.round(Number(text) * MULT[unit]))
   const textOk = $derived(text.trim() !== '' && Number.isFinite(Number(text)) && Number.isInteger(seconds))
-  const inRange = $derived(textOk && seconds >= min && seconds <= max)
+  const onStep = $derived(seconds % step === 0)
+  const inRange = $derived(textOk && onStep && seconds >= min && seconds <= max)
   const error = $derived(
     !textOk
       ? 'Enter a number.'
-      : seconds < min
-        ? `At least ${min} s.`
-        : seconds > max
-          ? `At most ${max.toLocaleString()} s (about ${(max / 3600).toFixed(1)} h).`
-          : '',
+      : !onStep
+        ? `Must be a multiple of ${fmtDuration(step)}.`
+        : seconds < min
+          ? `At least ${fmtDuration(min)}.`
+          : seconds > max
+            ? `At most ${max.toLocaleString()} s (about ${(max / 3600).toFixed(1)} h).`
+            : '',
   )
 
   $effect(() => {
