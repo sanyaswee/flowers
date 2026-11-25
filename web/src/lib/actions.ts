@@ -9,6 +9,7 @@ import { toast } from './toast.svelte'
 import {
   DEFAULT_PLANT_SETTINGS,
   MAX_PLANT_CHANNELS,
+  type AutoWateringSettings,
   type ChannelEntry,
   type NodeEntry,
   type NodeSettings,
@@ -56,6 +57,14 @@ export const saveChannelSettings = (
     const settings: PlantSettings = { enabled: fresh.enabled, ...next }
     await api.setChannelSettings(c.node_id, c.channel_id, settings)
   })
+
+/** Saves auto-watering for one channel. It lives on the server only: nothing is sent to the node. */
+export const saveAutoWatering = (c: ChannelEntry, next: AutoWateringSettings) =>
+  run(
+    `Couldn't save auto-watering for ${channelName(c)}`,
+    `Saved auto-watering for ${channelName(c)}`,
+    () => api.setChannelAutoWatering(c.node_id, c.channel_id, next),
+  )
 
 /**
  * Saves node-level timing. The endpoint takes the whole settings struct and also overwrites every
@@ -105,4 +114,6 @@ export async function waterChannel(node: NodeEntry, c: ChannelEntry): Promise<vo
   }
   store.wateringUntil[key] = Date.now() + (c.watering_time + 3) * 1000
   toast.success(`Water command sent to ${channelName(c)}`)
+  // The server remembers when it was watered (auto-watering counts from there)
+  await store.refreshCore()
 }

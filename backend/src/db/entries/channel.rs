@@ -1,13 +1,14 @@
 //! Module for interaction with `channels` DB table
 
-use serde::Serialize;
+use chrono::{NaiveDateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use utoipa::ToSchema;
 
 use shared::node_settings::PlantSettings;
 
 /// Auto watering type enum
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema, sqlx::Type)]
 #[repr(i64)]
 pub enum AutoWateringType {
     /// Every x minutes
@@ -15,6 +16,39 @@ pub enum AutoWateringType {
 
     /// TODO: use only after calibration patches
     ThresholdBased = 1,
+}
+
+/// Auto watering configuration of the channel
+///
+/// Server only, not a part of `PlantSettings`, nodes know nothing about it
+/// This may be made node-side in future
+#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
+pub struct AutoWateringSettings {
+    pub auto_watering_enable: bool,
+    pub auto_watering_type: AutoWateringType,
+
+    /// In minutes
+    pub auto_watering_interval: u16,
+
+    /// In %
+    pub auto_watering_threshold: u8,
+}
+
+impl AutoWateringSettings {
+    /// Check that the values make sense
+    pub fn validate(&self) -> Result<(), &'static str> {
+        // TODO: allow the threshold based type after calibration patches
+        if self.auto_watering_type != AutoWateringType::IntervalBased {
+            return Err("only interval based auto watering is supported for now");
+        }
+        if self.auto_watering_interval == 0 {
+            return Err("auto watering interval must be at least 1 minute");
+        }
+        if self.auto_watering_threshold > 100 {
+            return Err("auto watering threshold is a percentage (0-100)");
+        }
+        Ok(())
+    }
 }
 
 /// `channels` table
@@ -31,6 +65,9 @@ pub struct ChannelEntry {
     pub auto_watering_type: AutoWateringType,
     pub auto_watering_interval: u16,
     pub auto_watering_threshold: u8,
+
+    /// When the last watering command was sent (UTC), manual or automatic. `None` = never
+    pub last_watered: Option<NaiveDateTime>,
 }
 
 impl ChannelEntry {
@@ -47,7 +84,8 @@ impl ChannelEntry {
                 auto_watering_enable as "auto_watering_enable: bool",
                 auto_watering_type as "auto_watering_type: AutoWateringType",
                 auto_watering_interval as "auto_watering_interval: u16",
-                auto_watering_threshold as "auto_watering_threshold: u8"
+                auto_watering_threshold as "auto_watering_threshold: u8",
+                last_watered as "last_watered: NaiveDateTime"
             FROM channels
             "#
         )
@@ -78,7 +116,8 @@ impl ChannelEntry {
                 auto_watering_enable as "auto_watering_enable: bool",
                 auto_watering_type as "auto_watering_type: AutoWateringType",
                 auto_watering_interval as "auto_watering_interval: u16",
-                auto_watering_threshold as "auto_watering_threshold: u8"
+                auto_watering_threshold as "auto_watering_threshold: u8",
+                last_watered as "last_watered: NaiveDateTime"
             FROM channels
             WHERE node_id = ? AND channel_id = ?
             "#,
@@ -116,7 +155,8 @@ impl ChannelEntry {
                 auto_watering_enable as "auto_watering_enable: bool",
                 auto_watering_type as "auto_watering_type: AutoWateringType",
                 auto_watering_interval as "auto_watering_interval: u16",
-                auto_watering_threshold as "auto_watering_threshold: u8"
+                auto_watering_threshold as "auto_watering_threshold: u8",
+                last_watered as "last_watered: NaiveDateTime"
             "#,
             node_id,
             channel_id,
@@ -236,6 +276,63 @@ impl ChannelEntry {
         .await?;
 
         self.watering_time = value;
+
+        Ok(())
+    }
+
+    /// Set auto watering settings
+    pub async fn set_auto_watering(
+        &mut self,
+        pool: &SqlitePool,
+        settings: AutoWateringSettings,
+    ) -> Result<(), sqlx::Error> {
+        let kind = settings.auto_watering_type as i64;
+        let interval = settings.auto_watering_interval as i64;
+        let threshold = settings.auto_watering_threshold as i64;
+
+        sqlx::query!(
+            r#"
+            UPDATE channels SET
+                auto_watering_enable = ?,
+                auto_watering_type = ?,
+                auto_watering_interval = ?,
+                auto_watering_threshold = ?
+            WHERE node_id = ? AND channel_id = ?
+            "#,
+            settings.auto_watering_enable,
+            kind,
+            interval,
+            threshold,
+            self.node_id,
+            self.channel_id,
+        )
+        .execute(pool)
+        .await?;
+
+        self.auto_watering_enable = settings.auto_watering_enable;
+        self.auto_watering_type = settings.auto_watering_type;
+        self.auto_watering_interval = settings.auto_watering_interval;
+        self.auto_watering_threshold = settings.auto_watering_threshold;
+
+        Ok(())
+    }
+
+    /// Remember that a watering command was just sent
+    pub async fn mark_watered(&mut self, pool: &SqlitePool) -> Result<(), sqlx::Error> {
+        let now = Utc::now().naive_utc();
+
+        sqlx::query!(
+            r#"
+            UPDATE channels SET last_watered = ? WHERE node_id = ? AND channel_id = ?
+            "#,
+            now,
+            self.node_id,
+            self.channel_id,
+        )
+        .execute(pool)
+        .await?;
+
+        self.last_watered = Some(now);
 
         Ok(())
     }

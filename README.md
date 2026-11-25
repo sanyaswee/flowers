@@ -24,10 +24,9 @@ The project consists of 3 parts, node firmware, backend server, and web frontend
 ## Current stage & Milestones
 For now, this project is in the MVP stage. The major milestones are:
 - ~~Build a web frontend with UI for controlling the server and nodes~~
-- Introduce ACK / Ping packets in order to track node status
-- Add time-based automated watering
+- Update communication protocol: introduce ACK / Ping packets in order to track node status, switch to binary transfers instead of JSON
+- ~~Add time-based automated watering~~
 - Add moisture-based automated watering
-- Consider switching to binary transfers instead of JSON packets
 - Migrate from SQLite to MySQL or PostgreSQL
 - Add another node type (probably ESP32)
 - Develop a CLI app for managing the nodes

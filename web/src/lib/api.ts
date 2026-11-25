@@ -1,5 +1,6 @@
 import { clock, toNaiveUtc } from './time.svelte'
 import type {
+  AutoWateringSettings,
   ChannelEntry,
   ChannelTelemetryEntry,
   NodeEntry,
@@ -109,6 +110,9 @@ export const api = {
     request<void>('POST', `${channel(id, ch)}/settings`, settings),
   setNodeSettings: (id: string, settings: NodeSettings) =>
     request<void>('POST', `${node(id)}/settings`, settings),
+  /** Stored on the server only, nothing is sent to the node. */
+  setChannelAutoWatering: (id: string, ch: number, settings: AutoWateringSettings) =>
+    request<void>('POST', `${channel(id, ch)}/auto-watering`, settings),
 
   /** 200 only means the command was published to MQTT. The node sends no acknowledgement. */
   water: (id: string, ch: number) => request<void>('POST', `${channel(id, ch)}/water`),

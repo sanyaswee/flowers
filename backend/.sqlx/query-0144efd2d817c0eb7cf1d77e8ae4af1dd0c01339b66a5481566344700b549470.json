@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n            INSERT INTO channels (node_id, channel_id, enabled, moisture_m_freq, watering_time)\n            VALUES (?, ?, ?, ?, ?)\n            RETURNING\n                id as \"id!: i64\",\n                node_id as \"node_id!: String\",\n                channel_id as \"channel_id!: u8\",\n                verbose_name as \"verbose_name!: String\",\n                enabled as \"enabled!: bool\",\n                moisture_m_freq as \"moisture_m_freq!: u16\",\n                watering_time as \"watering_time!: u16\",\n                auto_watering_enable as \"auto_watering_enable: bool\",\n                auto_watering_type as \"auto_watering_type: AutoWateringType\",\n                auto_watering_interval as \"auto_watering_interval: u16\",\n                auto_watering_threshold as \"auto_watering_threshold: u8\"\n            ",
+  "query": "\n            SELECT\n                id,\n                node_id,\n                channel_id as \"channel_id: u8\",\n                verbose_name as \"verbose_name!: String\",\n                enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\",\n                watering_time as \"watering_time: u16\",\n                auto_watering_enable as \"auto_watering_enable: bool\",\n                auto_watering_type as \"auto_watering_type: AutoWateringType\",\n                auto_watering_interval as \"auto_watering_interval: u16\",\n                auto_watering_threshold as \"auto_watering_threshold: u8\",\n                last_watered as \"last_watered: NaiveDateTime\"\n            FROM channels\n            WHERE node_id = ? AND channel_id = ?\n            ",
   "describe": {
     "columns": [
       {
-        "name": "id!: i64",
+        "name": "id",
         "ordinal": 0,
         "type_info": "Integer",
         "origin": {
@@ -15,7 +15,7 @@
         }
       },
       {
-        "name": "node_id!: String",
+        "name": "node_id",
         "ordinal": 1,
         "type_info": "Text",
         "origin": {
@@ -26,7 +26,7 @@
         }
       },
       {
-        "name": "channel_id!: u8",
+        "name": "channel_id: u8",
         "ordinal": 2,
         "type_info": "Integer",
         "origin": {
@@ -48,7 +48,7 @@
         }
       },
       {
-        "name": "enabled!: bool",
+        "name": "enabled: bool",
         "ordinal": 4,
         "type_info": "Integer",
         "origin": {
@@ -59,7 +59,7 @@
         }
       },
       {
-        "name": "moisture_m_freq!: u16",
+        "name": "moisture_m_freq: u16",
         "ordinal": 5,
         "type_info": "Integer",
         "origin": {
@@ -70,7 +70,7 @@
         }
       },
       {
-        "name": "watering_time!: u16",
+        "name": "watering_time: u16",
         "ordinal": 6,
         "type_info": "Integer",
         "origin": {
@@ -123,13 +123,24 @@
             "name": "auto_watering_threshold"
           }
         }
+      },
+      {
+        "name": "last_watered: NaiveDateTime",
+        "ordinal": 11,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "last_watered"
+          }
+        }
       }
     ],
     "parameters": {
-      "Right": 5
+      "Right": 2
     },
     "nullable": [
-      null,
+      false,
       false,
       false,
       true,
@@ -139,8 +150,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "73664ecce4dec47edf70d892cd207bd3a473218aac5069a0309f1a392704348e"
+  "hash": "0144efd2d817c0eb7cf1d77e8ae4af1dd0c01339b66a5481566344700b549470"
 }

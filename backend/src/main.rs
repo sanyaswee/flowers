@@ -1,6 +1,7 @@
 //! The main backend server
 
 mod api;
+mod auto_watering;
 mod db;
 mod mqtt;
 
@@ -13,6 +14,9 @@ async fn main() {
 
     // Initialize MQTT
     let mqtt_client = mqtt::init(pool.clone()).await;
+
+    // Start the auto watering task
+    auto_watering::spawn(pool.clone(), mqtt_client.clone());
 
     // Start HTPP server
     let state = api::AppState { pool, mqtt_client };

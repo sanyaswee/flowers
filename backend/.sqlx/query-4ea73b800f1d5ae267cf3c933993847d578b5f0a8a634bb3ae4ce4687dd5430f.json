@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id, node_id, channel_id as \"channel_id: u8\",\n                verbose_name as \"verbose_name: String\", enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\",\n                watering_time as \"watering_time: u16\",\n                auto_watering_enable as \"auto_watering_enable: bool\",\n                auto_watering_type as \"auto_watering_type: AutoWateringType\",\n                auto_watering_interval as \"auto_watering_interval: u16\",\n                auto_watering_threshold as \"auto_watering_threshold: u8\"\n            FROM channels\n            ",
+  "query": "\n            SELECT\n                id, node_id, channel_id as \"channel_id: u8\",\n                verbose_name as \"verbose_name: String\", enabled as \"enabled: bool\",\n                moisture_m_freq as \"moisture_m_freq: u16\",\n                watering_time as \"watering_time: u16\",\n                auto_watering_enable as \"auto_watering_enable: bool\",\n                auto_watering_type as \"auto_watering_type: AutoWateringType\",\n                auto_watering_interval as \"auto_watering_interval: u16\",\n                auto_watering_threshold as \"auto_watering_threshold: u8\",\n                last_watered as \"last_watered: NaiveDateTime\"\n            FROM channels\n            ",
   "describe": {
     "columns": [
       {
@@ -123,6 +123,17 @@
             "name": "auto_watering_threshold"
           }
         }
+      },
+      {
+        "name": "last_watered: NaiveDateTime",
+        "ordinal": 11,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "channels",
+            "name": "last_watered"
+          }
+        }
       }
     ],
     "parameters": {
@@ -139,8 +150,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "9ab22944913fa2b3e42f9b6f04af135224f9b7df4c7cc95944e9e79ee09e7208"
+  "hash": "4ea73b800f1d5ae267cf3c933993847d578b5f0a8a634bb3ae4ce4687dd5430f"
 }
