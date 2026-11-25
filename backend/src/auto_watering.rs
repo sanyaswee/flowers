@@ -86,7 +86,12 @@ async fn water_if_possible(
     now: NaiveDateTime,
 ) -> Result<(), sqlx::Error> {
     let name = if channel.verbose_name.is_some() {
-        format!("{} [{}/{}]", channel.verbose_name.clone().unwrap(), channel.node_id, channel.channel_id)
+        format!(
+            "{} [{}/{}]",
+            channel.verbose_name.clone().unwrap(),
+            channel.node_id,
+            channel.channel_id
+        )
     } else {
         format!("[{}/{}]", channel.node_id, channel.channel_id)
     };
