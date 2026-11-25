@@ -448,9 +448,10 @@ pub async fn water_channel(
     };
 
     if water_plant(state.mqtt_client, node, channel_id).await
-        && let Err(e) = channel.mark_watered(&state.pool).await {
-            eprintln!("Failed to save the watering time of {node_id}/{channel_id}: {e}");
-        }
+        && let Err(e) = channel.mark_watered(&state.pool).await
+    {
+        eprintln!("Failed to save the watering time of {node_id}/{channel_id}: {e}");
+    }
 
     Ok(StatusCode::OK)
 }
